@@ -1,0 +1,43 @@
+[workspace]
+members = [".", "georm-macros"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Lucien Cartier-Tilet <lucien@phundrak.com>"]
+homepage = "https://labs.phundrak.com/phundrak/georm"
+repository = "https://labs.phundrak.com/phundrak/georm"
+license = "MIT OR GPL-3.0-or-later"
+keywords = ["sqlx", "orm", "postgres", "postgresql", "database", "async"]
+categories = ["database"]
+
+[package]
+name = "georm"
+readme = "README.md"
+description = "Georm, a simple, opiniated SQLx ORM for PostgreSQL"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[workspace.dependencies]
+georm-macros = { version = "=0.1.0", path = "georm-macros" }
+
+[workspace.dependencies.sqlx]
+version = "0.8.3"
+default-features = false
+features = ["postgres", "runtime-tokio", "macros", "migrate"]
+
+[dependencies]
+sqlx = { workspace = true }
+georm-macros = { workspace = true }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "deny"
+pendantic = "deny"
+nursery = "deny"
