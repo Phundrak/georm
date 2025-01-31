@@ -44,16 +44,6 @@ pub struct M2MLink {
     pub to: String,
 }
 
-//#[georm(
-//    table = "users",
-//    many_to_many = [
-//        {
-//            name = friends,
-//            entity: User,
-//            link = { table = "user_friendships", from: "user1", to "user2" }
-//        }
-//    ]
-//)]
 #[derive(deluxe::ParseMetaItem)]
 pub struct M2MRelationship {
     pub name: String,
@@ -134,7 +124,6 @@ struct GeormFieldAttributes {
     pub relation: Option<O2ORelationship>,
 }
 
-// #[georm(relation = { name = profile, id = "id", entity = Profile, nullable })]
 #[derive(deluxe::ParseMetaItem, Clone, Debug)]
 pub struct O2ORelationship {
     pub entity: syn::Type,
