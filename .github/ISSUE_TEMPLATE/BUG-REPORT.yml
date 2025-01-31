@@ -1,0 +1,60 @@
+name: Bug Report
+description: File a bug report
+title: "[Bug]: "
+labels: ["bug/unconfirmed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: expected-behaviour
+    attributes:
+      label: Expected behaviour
+      description: How do you expect Georm to behave?
+      value: "Something should happen"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Actual behaviour
+      description: How does the actual behaviour differ from the expected behaviour?
+      value: "Something else happened"
+    validations:
+      required: true
+  - type: dropdown
+    id: package-version
+    attributes:
+      label: Georm version
+      description: What version of Georm are you using?
+      options:
+        - main
+        - develop
+        - something else (please specify)
+  - type: dropdown
+    id: source
+    attributes:
+      label: Library source
+      description: From which source did you get the backend?
+      options:
+        - Crates.io
+        - Git version
+        - something else (please specify)
+  - type: textarea
+    id: rust-version
+    attributes:
+      label: Rust version
+      description: Which version of Rust did you use to build Georm?
+      value: "Rust 1.y.z"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant code or log output
+      description: Please copy and pase any relevant code or log output. This will be automatically formatted into code, so no need for backticks
+      render: text
+  - type: textarea
+    id: other-info
+    attributes:
+      label: Other relevant information
+      description: Please provide any other information which could be relevant to the issue (PostgreSQL version? Upstream bug?)

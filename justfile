@@ -14,6 +14,9 @@ lint:
 audit:
 	cargo deny check all
 
+migrate:
+	cargo sqlx migrate run
+
 build:
 	cargo build
 
