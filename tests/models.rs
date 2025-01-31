@@ -31,7 +31,12 @@ impl Ord for Author {
 }
 
 #[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq, Default)]
-#[georm(table = "books")]
+#[georm(
+    table = "books",
+    one_to_many = [
+        { name = "reviews", remote_id = "book_id", table = "reviews", entity = Review }
+    ]
+)]
 pub struct Book {
     #[georm(id)]
     ident: i32,
@@ -59,5 +64,5 @@ pub struct Review {
     pub id: i32,
     #[georm(relation = {entity = Book, table = "books", remote_id = "ident", name = "book"})]
     pub book_id: i32,
-    pub review: String
+    pub review: String,
 }

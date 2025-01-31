@@ -7,4 +7,5 @@ VALUES ('The Lord of the Rings: The Fellowship of the Ring', 1),
 INSERT INTO reviews (book_id, review)
 VALUES (1, 'Great book'),
        (3, 'Awesome book'),
+       (2, 'Probably his best work!'),
        (2, 'Greatest book');
