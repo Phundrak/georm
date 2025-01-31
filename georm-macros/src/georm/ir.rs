@@ -103,13 +103,11 @@ impl From<&M2MRelationshipComplete> for proc_macro2::TokenStream {
         );
         let entity = &value.entity;
         let query = format!(
-            "
-SELECT remote.*
+            "SELECT remote.*
 FROM {} local
 JOIN {} link ON link.{} = local.{}
 JOIN {} remote ON link.{} = remote.{}
-WHERE local.{} = $1
-",
+WHERE local.{} = $1",
             value.local.table,
             value.link.table,
             value.link.from,
