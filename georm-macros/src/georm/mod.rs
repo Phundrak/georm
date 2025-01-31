@@ -49,12 +49,11 @@ pub fn georm_derive_macro2(
     let struct_attrs: ir::GeormStructAttributes =
         deluxe::extract_attributes(&mut ast).expect("Could not extract attributes from struct");
     let (fields, id) = extract_georm_field_attrs(&mut ast)?;
-    let trait_impl = trait_implementation::derive_trait(&ast, &struct_attrs.table, &fields, &id);
     let relationships = relationships::derive_relationships(&ast, &struct_attrs, &fields, &id);
+    let trait_impl = trait_implementation::derive_trait(&ast, &struct_attrs.table, &fields, &id);
     let code = quote! {
-        #trait_impl
         #relationships
+        #trait_impl
     };
-    println!("{code}");
     Ok(code)
 }

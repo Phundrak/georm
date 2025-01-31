@@ -39,7 +39,6 @@ SQLX_OFFLINE="1" cargo build --release
             bacon
             cargo
             cargo-deny
-            cargo-tarpaulin
             just
             rust-analyzer
             (rustVersion.override {

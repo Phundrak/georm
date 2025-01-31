@@ -1,0 +1,63 @@
+use georm::Georm;
+
+#[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq, Default)]
+#[georm(table = "biographies")]
+pub struct Biography {
+    #[georm(id)]
+    pub id: i32,
+    pub content: String,
+}
+
+#[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq, Default)]
+#[georm(table = "authors")]
+pub struct Author {
+    #[georm(id)]
+    pub id: i32,
+    pub name: String,
+    #[georm(relation = {entity = Biography, table = "biographies", name = "biography", nullable = true})]
+    pub biography_id: Option<i32>,
+}
+
+impl PartialOrd for Author {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.id.cmp(&other.id))
+    }
+}
+
+impl Ord for Author {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+#[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq, Default)]
+#[georm(table = "books")]
+pub struct Book {
+    #[georm(id)]
+    ident: i32,
+    title: String,
+    #[georm(relation = {entity = Author, table = "authors", name = "author"})]
+    author_id: i32,
+}
+
+impl PartialOrd for Book {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.ident.cmp(&other.ident))
+    }
+}
+
+impl Ord for Book {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.ident.cmp(&other.ident)
+    }
+}
+
+#[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq)]
+#[georm(table = "reviews")]
+pub struct Review {
+    #[georm(id)]
+    pub id: i32,
+    #[georm(relation = {entity = Book, table = "books", remote_id = "ident", name = "book"})]
+    pub book_id: i32,
+    pub review: String
+}

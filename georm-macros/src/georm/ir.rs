@@ -1,5 +1,4 @@
 use quote::quote;
-use std::fmt::{self, Display};
 
 #[derive(deluxe::ExtractAttributes)]
 #[deluxe(attributes(georm))]
@@ -32,7 +31,7 @@ impl From<&O2MRelationship> for proc_macro2::TokenStream {
         );
         quote! {
             pub async fn #function(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Vec<#entity>> {
-                query_as!(#entity, #query, self.get_id()).fetch_all(pool).await
+                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_all(pool).await
             }
         }
     }
@@ -122,7 +121,7 @@ WHERE local.{} = $1
         );
         quote! {
             pub async fn #function(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Vec<#entity>> {
-                query_as!(#entity, #query, self.get_id()).fetch_all(pool).await
+                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_all(pool).await
             }
         }
     }
@@ -134,16 +133,11 @@ struct GeormFieldAttributes {
     #[deluxe(default = false)]
     pub id: bool,
     #[deluxe(default = None)]
-    pub column: Option<String>,
-    #[deluxe(default = None)]
     pub relation: Option<O2ORelationship>,
 }
 
-// #[georm(
-//     table = "profileId",
-//     one_to_one = { name = profile, id = "id", entity = Profile, nullable }
-//  )]
-#[derive(deluxe::ParseMetaItem, Clone)]
+// #[georm(relation = { name = profile, id = "id", entity = Profile, nullable })]
+#[derive(deluxe::ParseMetaItem, Clone, Debug)]
 pub struct O2ORelationship {
     pub entity: syn::Type,
     pub table: String,
@@ -154,12 +148,11 @@ pub struct O2ORelationship {
     pub name: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GeormField {
     pub ident: syn::Ident,
     pub field: syn::Field,
     pub ty: syn::Type,
-    pub column: Option<String>,
     pub id: bool,
     pub relation: Option<O2ORelationship>,
 }
@@ -170,31 +163,14 @@ impl GeormField {
         let ty = field.clone().ty;
         let attrs: GeormFieldAttributes =
             deluxe::extract_attributes(field).expect("Could not extract attributes from field");
-        let GeormFieldAttributes {
-            id,
-            column,
-            relation,
-        } = attrs;
+        let GeormFieldAttributes { id, relation } = attrs;
         Self {
             ident,
             field: field.to_owned(),
             id,
             ty,
             relation,
-            column,
         }
-    }
-}
-
-impl Display for GeormField {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.column
-                .clone()
-                .unwrap_or_else(|| self.ident.to_string())
-        )
     }
 }
 
@@ -203,7 +179,6 @@ impl From<&GeormField> for proc_macro2::TokenStream {
         let Some(relation) = value.relation.clone() else {
             return quote! {};
         };
-
         let function = syn::Ident::new(
             &format!("get_{}", relation.name),
             proc_macro2::Span::call_site(),
@@ -225,8 +200,8 @@ impl From<&GeormField> for proc_macro2::TokenStream {
             quote! { fetch_one }
         };
         quote! {
-            pub async fn #function(&value, pool: &::sqlx::PgPool) -> ::sqlx::Result<#return_type> {
-                query_as!(#entity, #query, value.#local_ident).#fetch(pool).await
+            pub async fn #function(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<#return_type> {
+                ::sqlx::query_as!(#entity, #query, self.#local_ident).#fetch(pool).await
             }
         }
     }

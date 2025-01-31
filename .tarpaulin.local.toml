@@ -1,8 +1,0 @@
-[all]
-out = ["Html", "Lcov"]
-skip-clean = true
-target-dir = "coverage"
-output-dir = "coverage"
-fail-under = 40
-exclude-files = ["target/*"]
-run-types = ["AllTargets"]

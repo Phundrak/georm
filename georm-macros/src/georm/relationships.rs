@@ -35,12 +35,12 @@ pub fn derive_relationships(
     id: &GeormField,
 ) -> TokenStream {
     let struct_name = &ast.ident;
-    let one_to_one = derive(fields, |field| field.relation.is_none());
+    let one_to_one = derive(fields, |field| field.relation.is_some());
     let one_to_many = derive(&struct_attrs.one_to_many, |_| true);
     let many_to_many: Vec<M2MRelationshipComplete> = struct_attrs
         .many_to_many
         .iter()
-        .map(|v| M2MRelationshipComplete::new(v, &struct_attrs.table, id.to_string()))
+        .map(|v| M2MRelationshipComplete::new(v, &struct_attrs.table, id.ident.to_string()))
         .collect();
     let many_to_many = derive(&many_to_many, |_| true);
 

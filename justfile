@@ -2,17 +2,11 @@ mod docker
 
 default: lint
 
-format:
-	cargo fmt --all
+clean:
+	cargo clean
 
-format-check:
-	cargo fmt --check --all
-
-build:
-	cargo build
-
-build-release:
-	cargo build --release
+test:
+	cargo test --all-targets --all
 
 lint:
 	cargo clippy --all-targets
@@ -20,18 +14,19 @@ lint:
 audit:
 	cargo deny check all
 
-test:
-	cargo test --all-targets --all
+build:
+	cargo build
 
-coverage:
-	mkdir -p coverage
-	cargo tarpaulin --config .tarpaulin.local.toml
+build-release:
+	cargo build --release
 
-coverage-ci:
-	mkdir -p coverage
-	cargo tarpaulin --config .tarpaulin.ci.toml
+format:
+	cargo fmt --all
 
-check-all: format-check lint coverage audit
+format-check:
+	cargo fmt --check --all
+
+check-all: format-check lint audit test
 
 ## Local Variables:
 ## mode: makefile

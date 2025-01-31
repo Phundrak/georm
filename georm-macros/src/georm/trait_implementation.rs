@@ -1,8 +1,17 @@
 use super::ir::GeormField;
 use quote::quote;
 
+fn generate_find_all_query(table: &str) -> proc_macro2::TokenStream {
+    let find_string = format!("SELECT * FROM {table}");
+    quote! {
+        async fn find_all(pool: &::sqlx::PgPool) -> ::sqlx::Result<Vec<Self>> {
+            ::sqlx::query_as!(Self, #find_string).fetch_all(pool).await
+        }
+    }
+}
+
 fn generate_find_query(table: &str, id: &GeormField) -> proc_macro2::TokenStream {
-    let find_string = format!("SELECT * FROM {table} WHERE {id} = $1",);
+    let find_string = format!("SELECT * FROM {table} WHERE {} = $1", id.ident);
     let ty = &id.ty;
     quote! {
         async fn find(pool: &::sqlx::PgPool, id: &#ty) -> ::sqlx::Result<Option<Self>> {
@@ -19,7 +28,7 @@ fn generate_create_query(table: &str, fields: &[GeormField]) -> proc_macro2::Tok
         "INSERT INTO {table} ({}) VALUES ({}) RETURNING *",
         fields
             .iter()
-            .map(std::string::ToString::to_string)
+            .map(|f| f.ident.to_string())
             .collect::<Vec<String>>()
             .join(", "),
         inputs.join(", ")
@@ -47,11 +56,12 @@ fn generate_update_query(
     let update_columns = fields
         .iter()
         .enumerate()
-        .map(|(i, &field)| format!("{field} = ${}", i + 1))
+        .map(|(i, &field)| format!("{} = ${}", field.ident, i + 1))
         .collect::<Vec<String>>()
         .join(", ");
     let update_string = format!(
-        "UPDATE {table} SET {update_columns} WHERE {id} = ${} RETURNING *",
+        "UPDATE {table} SET {update_columns} WHERE {} = ${} RETURNING *",
+        id.ident,
         fields.len() + 1
     );
     fields.push(id);
@@ -70,7 +80,7 @@ fn generate_update_query(
 }
 
 fn generate_delete_query(table: &str, id: &GeormField) -> proc_macro2::TokenStream {
-    let delete_string = format!("DELETE FROM {table} WHERE {id} = $1");
+    let delete_string = format!("DELETE FROM {table} WHERE {} = $1", id.ident);
     let ty = &id.ty;
     quote! {
         async fn delete_by_id(pool: &::sqlx::PgPool, id: &#ty) -> ::sqlx::Result<u64> {
@@ -104,13 +114,13 @@ pub fn derive_trait(
     id: &GeormField,
 ) -> proc_macro2::TokenStream {
     let ty = &id.ty;
-    let id_ident = &id.ident;
 
     // define impl variables
     let ident = &ast.ident;
     let (impl_generics, type_generics, where_clause) = ast.generics.split_for_impl();
 
     // generate
+    let get_all = generate_find_all_query(table);
     let get_id = generate_get_id(id);
     let find_query = generate_find_query(table, id);
     let create_query = generate_create_query(table, fields);
@@ -118,19 +128,11 @@ pub fn derive_trait(
     let delete_query = generate_delete_query(table, id);
     quote! {
         impl #impl_generics Georm<#ty> for #ident #type_generics #where_clause {
+            #get_all
             #get_id
             #find_query
             #create_query
             #update_query
-
-            async fn create_or_update(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Self> {
-                if Self::find(pool, &self.#id_ident).await?.is_some() {
-                    self.update(pool).await
-                } else {
-                    self.create(pool).await
-                }
-            }
-
             #delete_query
         }
     }

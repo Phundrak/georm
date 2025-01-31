@@ -1,11 +1,12 @@
 [licenses]
-# If there is a need to add another license, please refer to this
-# page: https://www.gnu.org/licenses/license-list.html
+# If there is a need to add another license, please refer to this page
+# for compatible licenses:
+# https://www.gnu.org/licenses/license-list.html
 allow = ["MIT", "Apache-2.0", "BSD-3-Clause", "Unicode-3.0", "Zlib"]
 confidence-threshold = 0.8
 
 [bans]
-multiple-versions = "warn"
+multiple-versions = "allow"
 wildcards = "allow"
 highlight = "all"
 workspace-default-features = "allow"

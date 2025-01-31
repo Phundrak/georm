@@ -1,6 +1,16 @@
 pub use georm_macros::Georm;
 
 pub trait Georm<Id> {
+    /// Find all the entities in the database.
+    ///
+    /// # Errors
+    /// Returns any error Postgres may have encountered
+    fn find_all(
+        pool: &sqlx::PgPool,
+    ) -> impl ::std::future::Future<Output = ::sqlx::Result<Vec<Self>>> + Send
+    where
+        Self: Sized;
+
     /// Find the entiy in the database based on its identifier.
     ///
     /// # Errors
@@ -42,9 +52,18 @@ pub trait Georm<Id> {
     fn create_or_update(
         &self,
         pool: &sqlx::PgPool,
-    ) -> impl std::future::Future<Output = sqlx::Result<Self>> + Send
+    ) -> impl ::std::future::Future<Output = sqlx::Result<Self>>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        async {
+            if Self::find(pool, self.get_id()).await?.is_some() {
+                self.update(pool).await
+            } else {
+                self.create(pool).await
+            }
+        }
+    }
 
     /// Delete the entity from the database if it exists.
     ///

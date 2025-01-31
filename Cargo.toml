@@ -34,6 +34,9 @@ features = ["postgres", "runtime-tokio", "macros", "migrate"]
 sqlx = { workspace = true }
 georm-macros = { workspace = true }
 
+[dev-dependencies]
+rand = "0.9"
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 
