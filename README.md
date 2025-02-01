@@ -152,4 +152,4 @@ pub struct Book {
 ```
 
 To read more about these features, you can refer to the [online
-documentation](https://docs.rs/sqlx/latest/georm/).
+documentation](https://docs.rs/georm/).
