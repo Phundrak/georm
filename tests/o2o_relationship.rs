@@ -53,3 +53,24 @@ async fn books_are_found_despite_nonstandard_id_name(pool: sqlx::PgPool) -> sqlx
     assert_eq!(tolkien, book.get_author(&pool).await?);
     Ok(())
 }
+
+#[sqlx::test(fixtures("simple_struct"))]
+async fn biographies_should_find_remote_o2o_author(pool: sqlx::PgPool) -> sqlx::Result<()> {
+    let london = Author::find(&pool, &3).await?.unwrap();
+    let london_biography = Biography::find(&pool, &1).await?.unwrap();
+    let result = london_biography.get_author(&pool).await;
+    assert!(result.is_ok());
+    let result = result.unwrap();
+    assert!(result.is_some());
+    let result = result.unwrap();
+    assert_eq!(london, result);
+    Ok(())
+}
+
+#[sqlx::test(fixtures("simple_struct"))]
+async fn biographies_may_not_have_corresponding_author(pool: sqlx::PgPool) -> sqlx::Result<()> {
+    let biography = Biography::find(&pool, &3).await?.unwrap();
+    let result = biography.get_author(&pool).await?;
+    assert!(result.is_none());
+    Ok(())
+}

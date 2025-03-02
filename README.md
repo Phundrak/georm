@@ -1,10 +1,15 @@
+<div align="center">
+ <a href="https://github.com/Phundrak/georm">
+   <img src="assets/logo.png" alt="Georm logo" width="150px" />
+ </a>
+</div>
+
 <h1 align="center">Georm</h1>
 <div align="center">
  <strong>
    A simple, opinionated SQLx ORM for PostgreSQL
  </strong>
 </div>
-
 <br/>
 
 <div align="center">
@@ -13,26 +18,22 @@
     <img src="https://img.shields.io/github/actions/workflow/status/phundrak/georm/ci.yaml?branch=main&style=flat-square" alt="actions status" /></a>
   <!-- Version -->
   <a href="https://crates.io/crates/georm">
-    <img src="https://img.shields.io/crates/v/georm.svg?style=flat-square"
-    alt="Crates.io version" /></a>
-  <!-- Discord -->
+    <img src="https://img.shields.io/crates/v/georm.svg?style=flat-square" alt="Crates.io version" />
+  </a>
   <!-- Docs -->
   <a href="https://docs.rs/georm">
-  <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square" alt="docs.rs docs" /></a>
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square" alt="docs.rs docs" />
+  </a>
 </div>
 
-<div align="center">
-  <h4>What is Georm?</h4>
-</div>
+## What is Georm?
 
 Georm is a quite simple ORM built around
 [SQLx](https://crates.io/crates/sqlx) that gives access to a few
 useful functions when interacting with a database, implementing
 automatically the most basic SQL interactions you’re tired of writing.
 
-<div align="center">
-  <h4>Why is Georm?</h4>
-</div>
+## Why is Georm?
 
 I wanted an ORM that’s easy and straightforward to use. I am aware
 some other projects exist, such as
@@ -40,16 +41,12 @@ some other projects exist, such as
 my needs and/or my wants of a simple interface. I ended up writing the
 ORM I wanted to use.
 
-<div align="center">
-  <h4>How is Georm?</h4>
-</div>
+## How is Georm?
 
 I use it in a few projects, and I’m quite happy with it right now. But
 of course, I’m open to constructive criticism and suggestions!
 
-<div align="center">
-  <h4>How can I use it?</h4>
-</div>
+## How can I use it?
 
 Georm works with SQLx, but does not re-export it itself. To get
 started, install both Georm and SQLx in your Rust project:
@@ -121,9 +118,7 @@ pub struct Author {
 Congratulations, your struct `Author` now has access to all the
 functions described in the `Georm` trait!
 
-<div align="center">
-  <h4>Entity relationship</h4>
-</div>
+## Entity relationship
 
 It is possible to implement one-to-one, one-to-many, and many-to-many
 relationships with Georm. This is a quick example of how a struct with
@@ -132,8 +127,12 @@ several relationships of different types may be declared:
 #[derive(sqlx::FromRow, Georm)]
 #[georm(
     table = "books",
+    one_to_one = [
+        { name = "draft", remote_id = "book_id", table = "drafts", entity = Draft }
+    ],
     one_to_many = [
-        { name = "reviews", remote_id = "book_id", table = "reviews", entity = Review }
+        { name = "reviews", remote_id = "book_id", table = "reviews", entity = Review },
+        { name = "reprints", remote_id = "book_id", table = "reprints", entity = Reprint }
     ],
     many_to_many = [{
         name = "genres",

@@ -58,13 +58,13 @@
 //!
 //! Here is an explanation of what these different values mean:
 //!
-//! | Value Name | Explanation                                                                             | Default value |
-//! |------------|-----------------------------------------------------------------------------------------|---------------|
-//! | entity     | Rust type of the entity found in the database                                           | N/A           |
+//! | Value Name | Explanation                                                                              | Default value |
+//! |------------|------------------------------------------------------------------------------------------|---------------|
+//! | entity     | Rust type of the entity found in the database                                            | N/A           |
 //! | name       | Name of the remote entity within the local entity; generates a method named `get_{name}` | N/A           |
-//! | table      | Database table where the entity is stored                                               | N/A           |
-//! | remote_id  | Name of the column serving as the identifier of the entity                              | `"id"`        |
-//! | nullable   | Whether the relationship can be broken                                                  | `false`       |
+//! | table      | Database table where the entity is stored                                                | N/A           |
+//! | remote_id  | Name of the column serving as the identifier of the entity                               | `"id"`        |
+//! | nullable   | Whether the relationship can be broken                                                   | `false`       |
 //!
 //! Note that in this instance, the `remote_id` and `nullable` values can be
 //! omitted as this is their default value. This below is a strict equivalent:
@@ -80,6 +80,39 @@
 //!     display_name: String,
 //! }
 //! ```
+//!
+//! But what if I have a one-to-one relationship with another entity and
+//! my current entity holds no data to reference that other identity? No
+//! worries, there is another way to declare such relationships.
+//!
+//! ```ignore
+//! #[georm(
+//!     one_to_one = [{
+//!         name = "profile",
+//!         remote_id = "user_id",
+//!         table = "profiles",
+//!         entity = User
+//!     }]
+//! )]
+//! struct User {
+//!     #[georm(id)]
+//!     id: i32,
+//!     username: String,
+//!     hashed_password: String,
+//! }
+//! ```
+//!
+//! We now have access to the method `User::get_profile(&self, &pool:
+//! sqlx::PgPool) -> Option<User>`.
+//!
+//! Here is an explanation of the values of `one_to_many`:
+//!
+//! | Value Name | Explanaion                                                                               | Default Value |
+//! |------------|------------------------------------------------------------------------------------------|---------------|
+//! | entity     | Rust type of the entity found in the database                                            | N/A           |
+//! | name       | Name of the remote entity within the local entity; generates a method named `get_{name}` | N/A           |
+//! | table      | Database table where the entity is stored                                                | N/A           |
+//! | remote_id  | Name of the column serving as the identifier of the entity                               | `"id"`        |
 //!
 //! ## One-to-many relationships
 //!
@@ -105,7 +138,7 @@
 //!         entity    = Post,
 //!         name      = "posts",
 //!         table     = "posts",
-//!         remote_id = "id"
+//!         remote_id = "author_id"
 //!     }]
 //! )]
 //! struct User {

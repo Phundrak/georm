@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::georm::ir::M2MRelationshipComplete;
+use crate::georm::ir::m2m_relationship::M2MRelationshipComplete;
 
 use super::ir::GeormField;
 use proc_macro2::TokenStream;
@@ -15,16 +15,12 @@ fn join_token_streams(token_streams: &[TokenStream]) -> TokenStream {
         .collect()
 }
 
-fn derive<T, P>(relationships: &[T], condition: P) -> TokenStream
+fn derive<T>(relationships: &[T]) -> TokenStream
 where
     for<'a> &'a T: Into<TokenStream>,
-    P: FnMut(&&T) -> bool,
 {
-    let implementations: Vec<TokenStream> = relationships
-        .iter()
-        .filter(condition)
-        .map(std::convert::Into::into)
-        .collect();
+    let implementations: Vec<TokenStream> =
+        relationships.iter().map(std::convert::Into::into).collect();
     join_token_streams(&implementations)
 }
 
@@ -35,18 +31,20 @@ pub fn derive_relationships(
     id: &GeormField,
 ) -> TokenStream {
     let struct_name = &ast.ident;
-    let one_to_one = derive(fields, |field| field.relation.is_some());
-    let one_to_many = derive(&struct_attrs.one_to_many, |_| true);
+    let one_to_one_local = derive(fields);
+    let one_to_one_remote = derive(&struct_attrs.one_to_one);
+    let one_to_many = derive(&struct_attrs.one_to_many);
     let many_to_many: Vec<M2MRelationshipComplete> = struct_attrs
         .many_to_many
         .iter()
         .map(|v| M2MRelationshipComplete::new(v, &struct_attrs.table, id.ident.to_string()))
         .collect();
-    let many_to_many = derive(&many_to_many, |_| true);
+    let many_to_many = derive(&many_to_many);
 
     quote! {
         impl #struct_name {
-            #one_to_one
+            #one_to_one_local
+            #one_to_one_remote
             #one_to_many
             #many_to_many
         }

@@ -1,7 +1,12 @@
 use georm::Georm;
 
 #[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq, Default)]
-#[georm(table = "biographies")]
+#[georm(
+    table = "biographies",
+    one_to_one = [{
+        name = "author", remote_id = "biography_id", table = "authors", entity = Author
+    }]
+)]
 pub struct Biography {
     #[georm(id)]
     pub id: i32,
