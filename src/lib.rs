@@ -267,6 +267,76 @@
 //! | link.from  | Column of the linking table referring to this entity                                     | N/A           |
 //! | link.to    | Column of the linking table referring to the remote entity                               | N/A           |
 //!
+//! ## Defaultable Fields
+//!
+//! Georm supports defaultable fields for entities where some fields have database
+//! defaults or are auto-generated (like serial IDs). When you mark fields as
+//! `defaultable`, Georm generates a companion struct that makes these fields
+//! optional during entity creation.
+//!
+//! ```ignore
+//! #[derive(sqlx::FromRow, Georm)]
+//! #[georm(table = "posts")]
+//! pub struct Post {
+//!     #[georm(id, defaultable)]
+//!     id: i32,                    // Auto-generated serial
+//!     title: String,              // Required field
+//!     #[georm(defaultable)]
+//!     published: bool,            // Has database default
+//!     #[georm(defaultable)]
+//!     created_at: chrono::DateTime<chrono::Utc>, // Has database default
+//!     author_id: i32,             // Required field
+//! }
+//! ```
+//!
+//! This generates a `PostDefault` struct where defaultable fields become `Option<T>`:
+//!
+//! ```ignore
+//! // Generated automatically by the macro
+//! pub struct PostDefault {
+//!     pub id: Option<i32>,        // Can be None for auto-generation
+//!     pub title: String,          // Required field stays the same
+//!     pub published: Option<bool>, // Can be None to use database default
+//!     pub created_at: Option<chrono::DateTime<chrono::Utc>>, // Can be None
+//!     pub author_id: i32,         // Required field stays the same
+//! }
+//!
+//! impl Defaultable<i32, Post> for PostDefault {
+//!     async fn create(&self, pool: &sqlx::PgPool) -> sqlx::Result<Post>;
+//! }
+//! ```
+//!
+//! ### Usage Example
+//!
+//! ```ignore
+//! use georm::{Georm, Defaultable};
+//!
+//! // Create a post with some fields using database defaults
+//! let post_default = PostDefault {
+//!     id: None,                   // Let database auto-generate
+//!     title: "My Blog Post".to_string(),
+//!     published: None,            // Use database default (e.g., false)
+//!     created_at: None,           // Use database default (e.g., NOW())
+//!     author_id: 42,
+//! };
+//!
+//! // Create the entity in the database
+//! let created_post = post_default.create(&pool).await?;
+//! println!("Created post with ID: {}", created_post.id);
+//! ```
+//!
+//! ### Rules and Limitations
+//!
+//! - **Option fields cannot be marked as defaultable**: If a field is already
+//!   `Option<T>`, you cannot mark it with `#[georm(defaultable)]`. This prevents
+//!   `Option<Option<T>>` types.
+//! - **Field visibility is preserved**: The generated defaultable struct maintains
+//!   the same field visibility (`pub`, `pub(crate)`, private) as the original struct.
+//! - **ID fields can be defaultable**: It's common to mark ID fields as defaultable
+//!   when they are auto-generated serials in PostgreSQL.
+//! - **Only generates when needed**: The defaultable struct is only generated if
+//!   at least one field is marked as defaultable.
+//!
 //! ## Limitations
 //! ### Database
 //!
@@ -282,95 +352,7 @@
 
 pub use georm_macros::Georm;
 
-pub trait Georm<Id> {
-    /// Find all the entities in the database.
-    ///
-    /// # Errors
-    /// Returns any error Postgres may have encountered
-    fn find_all(
-        pool: &sqlx::PgPool,
-    ) -> impl ::std::future::Future<Output = ::sqlx::Result<Vec<Self>>> + Send
-    where
-        Self: Sized;
-
-    /// Find the entiy in the database based on its identifier.
-    ///
-    /// # Errors
-    /// Returns any error Postgres may have encountered
-    fn find(
-        pool: &sqlx::PgPool,
-        id: &Id,
-    ) -> impl std::future::Future<Output = sqlx::Result<Option<Self>>> + Send
-    where
-        Self: Sized;
-
-    /// Create the entity in the database.
-    ///
-    /// # Errors
-    /// Returns any error Postgres may have encountered
-    fn create(
-        &self,
-        pool: &sqlx::PgPool,
-    ) -> impl std::future::Future<Output = sqlx::Result<Self>> + Send
-    where
-        Self: Sized;
-
-    /// Update an entity with a matching identifier in the database.
-    ///
-    /// # Errors
-    /// Returns any error Postgres may have encountered
-    fn update(
-        &self,
-        pool: &sqlx::PgPool,
-    ) -> impl std::future::Future<Output = sqlx::Result<Self>> + Send
-    where
-        Self: Sized;
-
-    /// Update an entity with a matching identifier in the database if
-    /// it exists, create it otherwise.
-    ///
-    /// # Errors
-    /// Returns any error Postgres may have encountered
-    fn create_or_update(
-        &self,
-        pool: &sqlx::PgPool,
-    ) -> impl ::std::future::Future<Output = sqlx::Result<Self>>
-    where
-        Self: Sized,
-    {
-        async {
-            if Self::find(pool, self.get_id()).await?.is_some() {
-                self.update(pool).await
-            } else {
-                self.create(pool).await
-            }
-        }
-    }
-
-    /// Delete the entity from the database if it exists.
-    ///
-    /// # Returns
-    /// Returns the amount of rows affected by the deletion.
-    ///
-    /// # Errors
-    /// Returns any error Postgres may have encountered
-    fn delete(
-        &self,
-        pool: &sqlx::PgPool,
-    ) -> impl std::future::Future<Output = sqlx::Result<u64>> + Send;
-
-    /// Delete any entity with the identifier `id`.
-    ///
-    /// # Returns
-    /// Returns the amount of rows affected by the deletion.
-    ///
-    /// # Errors
-    /// Returns any error Postgres may have encountered
-    fn delete_by_id(
-        pool: &sqlx::PgPool,
-        id: &Id,
-    ) -> impl std::future::Future<Output = sqlx::Result<u64>> + Send;
-
-    /// Returns the identifier of the entity.
-    fn get_id(&self) -> &Id;
-}
+mod georm;
+pub use georm::Georm;
+mod defaultable;
+pub use defaultable::Defaultable;

@@ -1,6 +1,6 @@
 use georm::Georm;
 
-#[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq, Default)]
+#[derive(Debug, Georm, PartialEq, Eq, Default)]
 #[georm(
     table = "biographies",
     one_to_one = [{
@@ -13,7 +13,7 @@ pub struct Biography {
     pub content: String,
 }
 
-#[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq, Default)]
+#[derive(Debug, Georm, PartialEq, Eq, Default)]
 #[georm(table = "authors")]
 pub struct Author {
     #[georm(id)]
@@ -35,7 +35,7 @@ impl Ord for Author {
     }
 }
 
-#[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq, Default)]
+#[derive(Debug, Georm, PartialEq, Eq, Default)]
 #[georm(
     table = "books",
     one_to_many = [
@@ -68,7 +68,7 @@ impl Ord for Book {
     }
 }
 
-#[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq)]
+#[derive(Debug, Georm, PartialEq, Eq)]
 #[georm(table = "reviews")]
 pub struct Review {
     #[georm(id)]
@@ -78,7 +78,7 @@ pub struct Review {
     pub review: String,
 }
 
-#[derive(Debug, sqlx::FromRow, Georm, PartialEq, Eq)]
+#[derive(Debug, Georm, PartialEq, Eq)]
 #[georm(
     table = "genres",
     many_to_many = [{

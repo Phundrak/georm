@@ -1,6 +1,7 @@
 use ir::GeormField;
 use quote::quote;
 
+mod defaultable_struct;
 mod ir;
 mod relationships;
 mod trait_implementation;
@@ -51,9 +52,34 @@ pub fn georm_derive_macro2(
     let (fields, id) = extract_georm_field_attrs(&mut ast)?;
     let relationships = relationships::derive_relationships(&ast, &struct_attrs, &fields, &id);
     let trait_impl = trait_implementation::derive_trait(&ast, &struct_attrs.table, &fields, &id);
+    let defaultable_struct =
+        defaultable_struct::derive_defaultable_struct(&ast, &struct_attrs, &fields);
+    let from_row_impl = generate_from_row_impl(&ast, &fields);
     let code = quote! {
         #relationships
         #trait_impl
+        #defaultable_struct
+        #from_row_impl
     };
     Ok(code)
+}
+
+fn generate_from_row_impl(
+    ast: &syn::DeriveInput,
+    fields: &[GeormField],
+) -> proc_macro2::TokenStream {
+    let struct_name = &ast.ident;
+    let field_idents: Vec<&syn::Ident> = fields.iter().map(|f| &f.ident).collect();
+    let field_names: Vec<String> = fields.iter().map(|f| f.ident.to_string()).collect();
+
+    quote! {
+        impl<'r> ::sqlx::FromRow<'r, ::sqlx::postgres::PgRow> for #struct_name {
+            fn from_row(row: &'r ::sqlx::postgres::PgRow) -> ::sqlx::Result<Self> {
+                use ::sqlx::Row;
+                Ok(Self {
+                    #(#field_idents: row.try_get(#field_names)?),*
+                })
+            }
+        }
+    }
 }

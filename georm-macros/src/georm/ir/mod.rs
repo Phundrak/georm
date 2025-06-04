@@ -25,6 +25,8 @@ struct GeormFieldAttributes {
     pub id: bool,
     #[deluxe(default = None)]
     pub relation: Option<O2ORelationship>,
+    #[deluxe(default = false)]
+    pub defaultable: bool,
 }
 
 #[derive(deluxe::ParseMetaItem, Clone, Debug)]
@@ -45,6 +47,7 @@ pub struct GeormField {
     pub ty: syn::Type,
     pub id: bool,
     pub relation: Option<O2ORelationship>,
+    pub defaultable: bool,
 }
 
 impl GeormField {
@@ -53,13 +56,42 @@ impl GeormField {
         let ty = field.clone().ty;
         let attrs: GeormFieldAttributes =
             deluxe::extract_attributes(field).expect("Could not extract attributes from field");
-        let GeormFieldAttributes { id, relation } = attrs;
+        let GeormFieldAttributes {
+            id,
+            relation,
+            defaultable,
+        } = attrs;
+
+        // Validate that defaultable is not used on Option<T> fields
+        if defaultable && Self::is_option_type(&ty) {
+            panic!(
+                "Field '{}' is already an Option<T> and cannot be marked as defaultable. \
+                Remove the #[georm(defaultable)] attribute.",
+                ident
+            );
+        }
+
         Self {
             ident,
             field: field.to_owned(),
             id,
             ty,
             relation,
+            defaultable,
+        }
+    }
+
+    /// Check if a type is Option<T>
+    fn is_option_type(ty: &syn::Type) -> bool {
+        match ty {
+            syn::Type::Path(type_path) => {
+                if let Some(segment) = type_path.path.segments.last() {
+                    segment.ident == "Option"
+                } else {
+                    false
+                }
+            }
+            _ => false,
         }
     }
 }

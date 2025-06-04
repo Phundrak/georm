@@ -4,9 +4,9 @@ services:
     restart: unless-stopped
     container_name: georm-backend-db
     environment:
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_PASSWORD: georm
+      POSTGRES_USER: georm
+      POSTGRES_DB: georm
     ports:
       - 127.0.0.1:5432:5432
     volumes:
