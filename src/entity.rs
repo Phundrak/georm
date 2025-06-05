@@ -50,18 +50,9 @@ pub trait Georm<Id> {
     fn create_or_update(
         &self,
         pool: &sqlx::PgPool,
-    ) -> impl ::std::future::Future<Output = sqlx::Result<Self>>
+    ) -> impl std::future::Future<Output = sqlx::Result<Self>> + Send
     where
-        Self: Sized,
-    {
-        async {
-            if Self::find(pool, self.get_id()).await?.is_some() {
-                self.update(pool).await
-            } else {
-                self.create(pool).await
-            }
-        }
-    }
+        Self: Sized;
 
     /// Delete the entity from the database if it exists.
     ///

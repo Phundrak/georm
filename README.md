@@ -506,7 +506,6 @@ Georm is designed for zero runtime overhead:
 
 ### High Priority
 - **Transaction Support**: Comprehensive transaction handling with atomic operations
-- **Race Condition Fix**: Database-native UPSERT operations to replace current `create_or_update`
 
 ### Medium Priority
 - **Multi-Database Support**: MySQL and SQLite support with feature flags

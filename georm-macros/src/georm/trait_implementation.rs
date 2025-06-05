@@ -97,6 +97,47 @@ fn generate_delete_query(table: &str, id: &GeormField) -> proc_macro2::TokenStre
     }
 }
 
+fn generate_upsert_query(
+    table: &str,
+    fields: &[GeormField],
+    id: &GeormField,
+) -> proc_macro2::TokenStream {
+    let inputs: Vec<String> = (1..=fields.len()).map(|num| format!("${num}")).collect();
+    let columns = fields
+        .iter()
+        .map(|f| f.ident.to_string())
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    // For ON CONFLICT DO UPDATE, exclude the ID field from updates
+    let update_assignments = fields
+        .iter()
+        .filter(|f| !f.id)
+        .map(|f| format!("{} = EXCLUDED.{}", f.ident, f.ident))
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    let upsert_string = format!(
+        "INSERT INTO {table} ({columns}) VALUES ({}) ON CONFLICT ({}) DO UPDATE SET {update_assignments} RETURNING *",
+        inputs.join(", "),
+        id.ident
+    );
+
+    let field_idents: Vec<syn::Ident> = fields.iter().map(|f| f.ident.clone()).collect();
+
+    quote! {
+        async fn create_or_update(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Self> {
+            ::sqlx::query_as!(
+                Self,
+                #upsert_string,
+                #(self.#field_idents),*
+            )
+            .fetch_one(pool)
+            .await
+        }
+    }
+}
+
 fn generate_get_id(id: &GeormField) -> proc_macro2::TokenStream {
     let ident = &id.ident;
     let ty = &id.ty;
@@ -125,6 +166,7 @@ pub fn derive_trait(
     let find_query = generate_find_query(table, id);
     let create_query = generate_create_query(table, fields);
     let update_query = generate_update_query(table, fields, id);
+    let upsert_query = generate_upsert_query(table, fields, id);
     let delete_query = generate_delete_query(table, id);
     quote! {
         impl #impl_generics Georm<#ty> for #ident #type_generics #where_clause {
@@ -133,6 +175,7 @@ pub fn derive_trait(
             #find_query
             #create_query
             #update_query
+            #upsert_query
             #delete_query
         }
     }
