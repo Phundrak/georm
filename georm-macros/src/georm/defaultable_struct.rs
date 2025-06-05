@@ -50,23 +50,27 @@ fn generate_defaultable_trait_impl(
     let defaultable_fields: Vec<_> = fields.iter().filter(|f| f.defaultable).collect();
 
     // Build static parts for non-defaultable fields
-    let static_field_names: Vec<String> = non_defaultable_fields.iter().map(|f| f.ident.to_string()).collect();
-    let static_field_idents: Vec<&syn::Ident> = non_defaultable_fields.iter().map(|f| &f.ident).collect();
+    let static_field_names: Vec<String> = non_defaultable_fields
+        .iter()
+        .map(|f| f.ident.to_string())
+        .collect();
+    let static_field_idents: Vec<&syn::Ident> =
+        non_defaultable_fields.iter().map(|f| &f.ident).collect();
 
     // Generate field checks for defaultable fields
     let mut field_checks = Vec::new();
     let mut bind_checks = Vec::new();
-    
+
     for field in &defaultable_fields {
         let field_name = field.ident.to_string();
         let field_ident = &field.ident;
-        
+
         field_checks.push(quote! {
             if self.#field_ident.is_some() {
                 dynamic_fields.push(#field_name);
             }
         });
-        
+
         bind_checks.push(quote! {
             if let Some(ref value) = self.#field_ident {
                 query_builder = query_builder.bind(value);
@@ -78,31 +82,31 @@ fn generate_defaultable_trait_impl(
         impl ::georm::Defaultable<#id_type, #struct_name> for #defaultable_struct_name {
             async fn create(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<#struct_name> {
                 let mut dynamic_fields = Vec::new();
-                
+
                 #(#field_checks)*
-                
+
                 let mut all_fields = vec![#(#static_field_names),*];
                 all_fields.extend(dynamic_fields);
-                
+
                 let placeholders: Vec<String> = (1..=all_fields.len())
                     .map(|i| format!("${}", i))
                     .collect();
-                    
+
                 let query = format!(
                     "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
                     #table,
                     all_fields.join(", "),
                     placeholders.join(", ")
                 );
-                
+
                 let mut query_builder = ::sqlx::query_as::<_, #struct_name>(&query);
-                
+
                 // Bind non-defaultable fields first
                 #(query_builder = query_builder.bind(&self.#static_field_idents);)*
-                
+
                 // Then bind defaultable fields that have values
                 #(#bind_checks)*
-                
+
                 query_builder.fetch_one(pool).await
             }
         }

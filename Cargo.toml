@@ -1,5 +1,9 @@
 [workspace]
-members = [".", "georm-macros"]
+members = [
+    ".",
+    "georm-macros",
+    "examples/postgres/*"
+]
 
 [workspace.package]
 version = "0.1.1"

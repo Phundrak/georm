@@ -60,7 +60,10 @@ async fn create_fails_if_already_exists(pool: sqlx::PgPool) -> sqlx::Result<()> 
     let result = author.create(&pool).await;
     assert!(result.is_err());
     let error = result.err().unwrap();
-    assert_eq!("error returned from database: duplicate key value violates unique constraint \"authors_pkey\"", error.to_string());
+    assert_eq!(
+        "error returned from database: duplicate key value violates unique constraint \"authors_pkey\"",
+        error.to_string()
+    );
     Ok(())
 }
 

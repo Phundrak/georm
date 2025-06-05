@@ -491,6 +491,32 @@ Georm is designed for zero runtime overhead:
 - **Minimal allocations**: Efficient use of owned vs borrowed data
 - **SQLx integration**: Leverages SQLx's optimized PostgreSQL driver
 
+## Examples
+
+### Comprehensive Example
+
+For an example showcasing user management, comments, and follower relationships, see the example in `examples/postgres/users-comments-and-followers/`. This example demonstrates:
+
+- User management and profile management
+- Comment system with user associations
+- Follower/following relationships (many-to-many)
+- Interactive CLI interface with CRUD operations
+- Database migrations and schema setup
+
+To run the example:
+
+```bash
+# Set up your database
+export DATABASE_URL="postgres://username:password@localhost/georm_example"
+
+# Run migrations
+cargo sqlx migrate run
+
+# Run the example
+cd examples/postgres/users-comments-and-followers
+cargo run help # For a list of all available actions
+```
+
 ## Comparison
 
 | Feature              | Georm | SeaORM | Diesel |
@@ -509,6 +535,7 @@ Georm is designed for zero runtime overhead:
 
 ### Medium Priority
 - **Multi-Database Support**: MySQL and SQLite support with feature flags
+- **Field-Based Queries**: Generate `find_by_{field_name}` methods that return `Vec<T>` for regular fields or `Option<T>` for unique fields
 - **Relationship Optimization**: Eager loading and N+1 query prevention
 - **Composite Primary Keys**: Multi-field primary key support
 - **Soft Delete**: Optional soft delete with `deleted_at` timestamps

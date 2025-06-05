@@ -169,7 +169,7 @@ mod defaultable_tests {
             Ok(created) => {
                 assert!(created.id > 0);
                 // If successful, name should have some default value
-            },
+            }
             Err(e) => {
                 // Expected if no database default for name column
                 assert!(e.to_string().contains("null") || e.to_string().contains("NOT NULL"));
@@ -181,9 +181,9 @@ mod defaultable_tests {
     async fn test_multiple_defaultable_fields_mixed(pool: PgPool) {
         // Test with some defaultable fields set and others None
         let multi_default = MultiDefaultableDefault {
-            id: None, // Let database generate
+            id: None,                                // Let database generate
             name: Some("Explicit Name".to_string()), // Explicit value
-            biography_id: Some(1), // Reference existing biography
+            biography_id: Some(1),                   // Reference existing biography
         };
 
         let created = multi_default.create(&pool).await.unwrap();
@@ -233,7 +233,11 @@ mod defaultable_tests {
 
         let error = result2.unwrap_err();
         let error_str = error.to_string();
-        assert!(error_str.contains("duplicate") || error_str.contains("unique") || error_str.contains("UNIQUE"));
+        assert!(
+            error_str.contains("duplicate")
+                || error_str.contains("unique")
+                || error_str.contains("UNIQUE")
+        );
     }
 
     #[sqlx::test(fixtures("../tests/fixtures/simple_struct.sql"))]
@@ -254,11 +258,15 @@ mod defaultable_tests {
                 // No foreign key constraint - this is valid behavior
                 assert!(created.id > 0);
                 assert_eq!(created.biography_id, Some(99999));
-            },
+            }
             Err(e) => {
                 // Foreign key constraint violation
                 let error_str = e.to_string();
-                assert!(error_str.contains("foreign") || error_str.contains("constraint") || error_str.contains("violates"));
+                assert!(
+                    error_str.contains("foreign")
+                        || error_str.contains("constraint")
+                        || error_str.contains("violates")
+                );
             }
         }
     }
@@ -281,7 +289,7 @@ mod defaultable_tests {
             Ok(created) => {
                 assert!(created.id > 0);
                 assert_eq!(created.name.len(), 10000);
-            },
+            }
             Err(e) => {
                 // Some kind of database limit hit
                 assert!(!e.to_string().is_empty());
@@ -291,7 +299,6 @@ mod defaultable_tests {
 
     mod sql_validation_tests {
         use super::*;
-        
 
         #[sqlx::test(fixtures("../tests/fixtures/simple_struct.sql"))]
         async fn test_sql_generation_no_defaultable_fields(pool: PgPool) {
@@ -306,12 +313,12 @@ mod defaultable_tests {
             // Since we can't directly inspect the generated SQL from the macro,
             // we test the behavior indirectly by ensuring all fields are included
             let created = author_default.create(&pool).await.unwrap();
-            
+
             // Verify all fields were properly inserted
             assert_eq!(created.id, 100);
             assert_eq!(created.name, "Test Name");
             assert_eq!(created.biography_id, Some(1));
-            
+
             // Verify the record exists in database with all expected values
             let found: TestAuthor = sqlx::query_as!(
                 TestAuthor,
@@ -321,7 +328,7 @@ mod defaultable_tests {
             .fetch_one(&pool)
             .await
             .unwrap();
-            
+
             assert_eq!(found.id, 100);
             assert_eq!(found.name, "Test Name");
             assert_eq!(found.biography_id, Some(1));
@@ -337,12 +344,12 @@ mod defaultable_tests {
             };
 
             let created = author_default.create(&pool).await.unwrap();
-            
+
             // ID should be auto-generated (not explicitly set)
             assert!(created.id > 0);
             assert_eq!(created.name, "Auto ID Test");
             assert_eq!(created.biography_id, None);
-            
+
             // Verify the generated ID is actually from database auto-increment
             // by checking it's different from any manually set values
             assert_ne!(created.id, 100); // Different from previous test
@@ -352,13 +359,13 @@ mod defaultable_tests {
         async fn test_sql_generation_mixed_defaultable_fields(pool: PgPool) {
             // Test SQL with multiple defaultable fields where some are None
             let multi_default = MultiDefaultableDefault {
-                id: None, // Should be excluded
+                id: None,                                // Should be excluded
                 name: Some("Explicit Name".to_string()), // Should be included
-                biography_id: Some(1), // Should be included
+                biography_id: Some(1),                   // Should be included
             };
 
             let created = multi_default.create(&pool).await.unwrap();
-            
+
             // Verify the mixed field inclusion worked correctly
             assert!(created.id > 0); // Auto-generated
             assert_eq!(created.name, "Explicit Name"); // Explicitly set
@@ -369,21 +376,21 @@ mod defaultable_tests {
         async fn test_placeholder_ordering_consistency(pool: PgPool) {
             // Test that placeholders are ordered correctly when fields are dynamically included
             // Create multiple records with different field combinations
-            
+
             // First: only non-defaultable fields
             let record1 = MultiDefaultableDefault {
                 id: None,
                 name: None,
                 biography_id: Some(1),
             };
-            
+
             // Second: all fields explicit
             let record2 = MultiDefaultableDefault {
                 id: Some(201),
                 name: Some("Full Record".to_string()),
                 biography_id: Some(1),
             };
-            
+
             // Third: mixed combination
             let record3 = MultiDefaultableDefault {
                 id: None,
@@ -395,23 +402,23 @@ mod defaultable_tests {
             let result1 = record1.create(&pool).await;
             let result2 = record2.create(&pool).await;
             let result3 = record3.create(&pool).await;
-            
+
             // Handle record1 based on whether name has a database default
             match result1 {
                 Ok(created1) => {
                     assert!(created1.id > 0);
                     assert_eq!(created1.biography_id, Some(1));
-                },
+                }
                 Err(_) => {
                     // Expected if name field has no database default
                 }
             }
-            
+
             let created2 = result2.unwrap();
             assert_eq!(created2.id, 201);
             assert_eq!(created2.name, "Full Record");
             assert_eq!(created2.biography_id, Some(1));
-            
+
             let created3 = result3.unwrap();
             assert!(created3.id > 0);
             assert_eq!(created3.name, "Mixed Record");
@@ -422,32 +429,32 @@ mod defaultable_tests {
         async fn test_field_inclusion_logic(pool: PgPool) {
             // Test that the field inclusion logic works correctly
             // by creating records that should result in different SQL queries
-            
+
             let minimal = TestAuthorDefault {
                 id: None,
                 name: "Minimal".to_string(),
                 biography_id: None,
             };
-            
+
             let maximal = TestAuthorDefault {
                 id: Some(300),
                 name: "Maximal".to_string(),
                 biography_id: Some(1),
             };
-            
+
             let created_minimal = minimal.create(&pool).await.unwrap();
             let created_maximal = maximal.create(&pool).await.unwrap();
-            
+
             // Minimal should have auto-generated ID, explicit name, NULL biography_id
             assert!(created_minimal.id > 0);
             assert_eq!(created_minimal.name, "Minimal");
             assert_eq!(created_minimal.biography_id, None);
-            
+
             // Maximal should have all explicit values
             assert_eq!(created_maximal.id, 300);
             assert_eq!(created_maximal.name, "Maximal");
             assert_eq!(created_maximal.biography_id, Some(1));
-            
+
             // Verify they are different records
             assert_ne!(created_minimal.id, created_maximal.id);
         }
@@ -460,14 +467,14 @@ mod defaultable_tests {
                 name: "Return Test".to_string(),
                 biography_id: None,
             };
-            
+
             let created = author_default.create(&pool).await.unwrap();
-            
+
             // Verify RETURNING clause populated all fields correctly
             assert!(created.id > 0); // Database-generated ID returned
             assert_eq!(created.name, "Return Test"); // Explicit value returned
             assert_eq!(created.biography_id, None); // NULL value returned correctly
-            
+
             // Double-check by querying the database directly
             let verified: TestAuthor = sqlx::query_as!(
                 TestAuthor,
@@ -477,7 +484,7 @@ mod defaultable_tests {
             .fetch_one(&pool)
             .await
             .unwrap();
-            
+
             assert_eq!(verified.id, created.id);
             assert_eq!(verified.name, created.name);
             assert_eq!(verified.biography_id, created.biography_id);
@@ -487,30 +494,30 @@ mod defaultable_tests {
         async fn test_query_parameter_binding_order(pool: PgPool) {
             // Test that query parameters are bound in the correct order
             // This is critical for the dynamic SQL generation
-            
+
             // Create a record where the parameter order matters
             let test_record = MultiDefaultableDefault {
-                id: Some(400), // This should be bound first (if included)
+                id: Some(400),                              // This should be bound first (if included)
                 name: Some("Param Order Test".to_string()), // This should be bound second (if included)
-                biography_id: Some(1), // This should be bound last
+                biography_id: Some(1),                      // This should be bound last
             };
-            
+
             let created = test_record.create(&pool).await.unwrap();
-            
+
             // Verify all parameters were bound correctly
             assert_eq!(created.id, 400);
             assert_eq!(created.name, "Param Order Test");
             assert_eq!(created.biography_id, Some(1));
-            
+
             // Test with different parameter inclusion order
             let test_record2 = MultiDefaultableDefault {
-                id: None, // Excluded - should not affect parameter order
+                id: None,                             // Excluded - should not affect parameter order
                 name: Some("No ID Test".to_string()), // Should be bound first now
-                biography_id: Some(1), // Should be bound second now
+                biography_id: Some(1),                // Should be bound second now
             };
-            
+
             let created2 = test_record2.create(&pool).await.unwrap();
-            
+
             assert!(created2.id > 0); // Auto-generated
             assert_eq!(created2.name, "No ID Test");
             assert_eq!(created2.biography_id, Some(1));

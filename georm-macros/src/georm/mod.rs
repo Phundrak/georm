@@ -35,10 +35,13 @@ fn extract_georm_field_attrs(
         _ => {
             let id1 = identifiers.first().unwrap();
             let id2 = identifiers.get(1).unwrap();
-            Err(syn::Error::new_spanned(id2.field.clone(), format!(
-                "Field {} cannot be an identifier, {} already is one.\nOnly one identifier is supported.",
-                id1.ident, id2.ident
-            )))
+            Err(syn::Error::new_spanned(
+                id2.field.clone(),
+                format!(
+                    "Field {} cannot be an identifier, {} already is one.\nOnly one identifier is supported.",
+                    id1.ident, id2.ident
+                ),
+            ))
         }
     }
 }
