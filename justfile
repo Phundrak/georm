@@ -1,5 +1,3 @@
-mod docker
-
 default: lint
 
 clean:

@@ -628,29 +628,31 @@ bacon test
 bacon doc
 ```
 
-#### Nix Development Environment (Optional)
+#### Devenv Development Environment (Optional)
 
-If you use [Nix](https://nixos.org/), you can use the provided flake for a reproducible development environment:
+If you use [Nix](https://nixos.org/), you can use the provided devenv configuration for a reproducible development environment:
 
 ```bash
 # Enter the development shell with all tools pre-installed
-nix develop
+devenv shell
 
 # Or use direnv for automatic environment activation
 direnv allow
 ```
 
-The Nix flake provides:
+The devenv configuration provides:
 - Exact Rust version (1.81) with required components
 - All development tools (just, cargo-deny, sqlx-cli, bacon)
 - LSP support (rust-analyzer)
 - SQL tooling (sqls for SQL language server)
+- PostgreSQL database for development
 
-**Nix flake contents:**
+**Devenv configuration:**
 - **Rust toolchain**: Specified version with rustfmt, clippy, and rust-analyzer
 - **Development tools**: just, cargo-deny, sqlx-cli, bacon
 - **SQL tools**: sqls (SQL language server)
-- **Platform support**: Currently x86_64-linux (can be extended)
+- **Database**: PostgreSQL with automatic setup
+- **Platform support**: Cross-platform (Linux, macOS, etc.)
 
 #### Database Setup for Tests
 
