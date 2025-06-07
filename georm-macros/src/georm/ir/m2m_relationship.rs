@@ -31,14 +31,14 @@ pub struct M2MRelationshipComplete {
 }
 
 impl M2MRelationshipComplete {
-    pub fn new(other: &M2MRelationship, local_table: &String, local_id: String) -> Self {
+    pub fn new(other: &M2MRelationship, local_table: &String, local_id: &String) -> Self {
         Self {
             name: other.name.clone(),
             entity: other.entity.clone(),
             link: other.link.clone(),
             local: Identifier {
                 table: local_table.to_string(),
-                id: local_id,
+                id: local_id.to_string(),
             },
             remote: Identifier {
                 table: other.table.clone(),

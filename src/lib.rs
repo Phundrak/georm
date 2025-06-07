@@ -331,11 +331,63 @@
 //!   `Option<T>`, you cannot mark it with `#[georm(defaultable)]`. This prevents
 //!   `Option<Option<T>>` types.
 //! - **Field visibility is preserved**: The generated defaultable struct maintains
-//!   the same field visibility (`pub`, `pub(crate)`, private) as the original struct.
-//! - **ID fields can be defaultable**: It's common to mark ID fields as defaultable
-//!   when they are auto-generated serials in PostgreSQL.
+//!   the same field visibility (`pub`, `pub(crate)`, private) as the original
+//!   struct.
+//! - **ID fields can be defaultable**: It's common to mark ID fields as
+//!   defaultable when they are auto-generated serials in PostgreSQL.
 //! - **Only generates when needed**: The defaultable struct is only generated if
 //!   at least one field is marked as defaultable.
+//!
+//! ## Composite Primary Keys
+//!
+//! Georm supports composite primary keys by marking multiple fields with
+//! `#[georm(id)]`:
+//!
+//! ```ignore
+//! #[derive(sqlx::FromRow, Georm)]
+//! #[georm(table = "user_roles")]
+//! pub struct UserRole {
+//!     #[georm(id)]
+//!     user_id: i32,
+//!     #[georm(id)]
+//!     role_id: i32,
+//!     assigned_at: chrono::DateTime<chrono::Utc>,
+//! }
+//! ```
+//!
+//! When multiple fields are marked as ID fields, Georm automatically generates a
+//! composite ID struct:
+//!
+//! ```ignore
+//! // Generated automatically by the macro
+//! pub struct UserRoleId {
+//!     pub user_id: i32,
+//!     pub role_id: i32,
+//! }
+//! ```
+//!
+//! This allows you to use the generated ID struct with all Georm methods:
+//!
+//! ```ignore
+//! // Find by composite key
+//! let id = UserRoleId { user_id: 1, role_id: 2 };
+//! let user_role = UserRole::find(&pool, &id).await?;
+//!
+//! // Delete by composite key
+//! UserRole::delete_by_id(&pool, &id).await?;
+//!
+//! // Get composite ID from instance
+//! let user_role = UserRole { user_id: 1, role_id: 2, assigned_at: chrono::Utc::now() };
+//! let id = user_role.get_id(); // Returns UserRoleId
+//! ```
+//!
+//! ### Composite Key Limitations
+//!
+//! - **Relationships not supported**: Entities with composite primary keys cannot
+//!   yet define relationships (one-to-one, one-to-many, many-to-many) as those
+//!   features require single-field primary keys.
+//! - **ID struct naming**: The generated ID struct follows the pattern
+//!   `{EntityName}Id`.
 //!
 //! ## Limitations
 //! ### Database
@@ -346,9 +398,9 @@
 //! ## Identifiers
 //!
 //! Identifiers, or primary keys from the point of view of the database, may
-//! only be simple types recognized by SQLx. They also cannot be arrays, and
-//! optionals are only supported in one-to-one relationships when explicitly
-//! marked as nullables.
+//! be simple types recognized by SQLx or composite keys (multiple fields marked
+//! with `#[georm(id)]`). Single primary keys cannot be arrays, and optionals are
+//! only supported in one-to-one relationships when explicitly marked as nullables.
 
 pub use georm_macros::Georm;
 

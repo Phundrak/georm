@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use crate::georm::ir::m2m_relationship::M2MRelationshipComplete;
 
+use super::composite_keys::IdType;
 use super::ir::GeormField;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -28,8 +29,24 @@ pub fn derive_relationships(
     ast: &syn::DeriveInput,
     struct_attrs: &super::ir::GeormStructAttributes,
     fields: &[GeormField],
-    id: &GeormField,
+    id: &IdType,
 ) -> TokenStream {
+    let id = match id {
+        IdType::Simple {
+            field_name,
+            field_type: _,
+        } => field_name.to_string(),
+        IdType::Composite {
+            fields: _,
+            field_type: _,
+        } => {
+            eprintln!(
+                "Warning: entity {}: Relationships are not supported for entities with composite primary keys yet",
+                ast.ident
+            );
+            return quote! {};
+        }
+    };
     let struct_name = &ast.ident;
     let one_to_one_local = derive(fields);
     let one_to_one_remote = derive(&struct_attrs.one_to_one);
@@ -37,7 +54,7 @@ pub fn derive_relationships(
     let many_to_many: Vec<M2MRelationshipComplete> = struct_attrs
         .many_to_many
         .iter()
-        .map(|v| M2MRelationshipComplete::new(v, &struct_attrs.table, id.ident.to_string()))
+        .map(|v| M2MRelationshipComplete::new(v, &struct_attrs.table, &id))
         .collect();
     let many_to_many = derive(&many_to_many);
 

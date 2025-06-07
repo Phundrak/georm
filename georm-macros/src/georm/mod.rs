@@ -1,14 +1,13 @@
 use ir::GeormField;
 use quote::quote;
 
+mod composite_keys;
 mod defaultable_struct;
 mod ir;
 mod relationships;
 mod trait_implementation;
 
-fn extract_georm_field_attrs(
-    ast: &mut syn::DeriveInput,
-) -> deluxe::Result<(Vec<GeormField>, GeormField)> {
+fn extract_georm_field_attrs(ast: &mut syn::DeriveInput) -> deluxe::Result<Vec<GeormField>> {
     let syn::Data::Struct(s) = &mut ast.data else {
         return Err(syn::Error::new_spanned(
             ast,
@@ -26,23 +25,13 @@ fn extract_georm_field_attrs(
         .into_iter()
         .filter(|field| field.id)
         .collect();
-    match identifiers.len() {
-        0 => Err(syn::Error::new_spanned(
+    if identifiers.is_empty() {
+        Err(syn::Error::new_spanned(
             ast,
             "Struct {name} must have one identifier",
-        )),
-        1 => Ok((fields, identifiers.first().unwrap().clone())),
-        _ => {
-            let id1 = identifiers.first().unwrap();
-            let id2 = identifiers.get(1).unwrap();
-            Err(syn::Error::new_spanned(
-                id2.field.clone(),
-                format!(
-                    "Field {} cannot be an identifier, {} already is one.\nOnly one identifier is supported.",
-                    id1.ident, id2.ident
-                ),
-            ))
-        }
+        ))
+    } else {
+        Ok(fields)
     }
 }
 
@@ -52,16 +41,23 @@ pub fn georm_derive_macro2(
     let mut ast: syn::DeriveInput = syn::parse2(item).expect("Failed to parse input");
     let struct_attrs: ir::GeormStructAttributes =
         deluxe::extract_attributes(&mut ast).expect("Could not extract attributes from struct");
-    let (fields, id) = extract_georm_field_attrs(&mut ast)?;
-    let relationships = relationships::derive_relationships(&ast, &struct_attrs, &fields, &id);
-    let trait_impl = trait_implementation::derive_trait(&ast, &struct_attrs.table, &fields, &id);
+    let fields = extract_georm_field_attrs(&mut ast)?;
     let defaultable_struct =
         defaultable_struct::derive_defaultable_struct(&ast, &struct_attrs, &fields);
     let from_row_impl = generate_from_row_impl(&ast, &fields);
+
+    let (identifier, id_struct) = composite_keys::create_primary_key(&ast, &fields);
+
+    let relationships =
+        relationships::derive_relationships(&ast, &struct_attrs, &fields, &identifier);
+    let trait_impl =
+        trait_implementation::derive_trait(&ast, &struct_attrs.table, &fields, &identifier);
+
     let code = quote! {
+        #id_struct
+        #defaultable_struct
         #relationships
         #trait_impl
-        #defaultable_struct
         #from_row_impl
     };
     Ok(code)

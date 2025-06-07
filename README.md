@@ -41,6 +41,7 @@ Georm is a lightweight, opinionated Object-Relational Mapping (ORM) library buil
 - **Zero Runtime Cost**: No reflection or runtime query building
 - **Simple API**: Intuitive derive macros for common operations
 - **Relationship Support**: One-to-one, one-to-many, and many-to-many relationships
+- **Composite Primary Keys**: Support for multi-field primary keys
 - **Defaultable Fields**: Easy entity creation with database defaults and auto-generated values
 - **PostgreSQL Native**: Optimized for PostgreSQL features and data types
 
@@ -147,6 +148,38 @@ async fn example(pool: &PgPool) -> sqlx::Result<()> {
 ```
 
 ## Advanced Features
+
+### Composite Primary Keys
+
+Georm supports composite primary keys by marking multiple fields with `#[georm(id)]`:
+
+```rust
+#[derive(Georm)]
+#[georm(table = "user_roles")]
+pub struct UserRole {
+    #[georm(id)]
+    pub user_id: i32,
+    #[georm(id)]
+    pub role_id: i32,
+    pub assigned_at: chrono::DateTime<chrono::Utc>,
+}
+```
+
+This automatically generates a composite ID struct:
+
+```rust
+// Generated automatically
+pub struct UserRoleId {
+    pub user_id: i32,
+    pub role_id: i32,
+}
+
+// Usage
+let id = UserRoleId { user_id: 1, role_id: 2 };
+let user_role = UserRole::find(pool, &id).await?;
+```
+
+**Note**: Relationships are not yet supported for entities with composite primary keys.
 
 ### Defaultable Fields
 
@@ -534,10 +567,10 @@ cargo run help # For a list of all available actions
 - **Transaction Support**: Comprehensive transaction handling with atomic operations
 
 ### Medium Priority
+- **Composite Key Relationships**: Add relationship support (one-to-one, one-to-many, many-to-many) for entities with composite primary keys
 - **Multi-Database Support**: MySQL and SQLite support with feature flags
 - **Field-Based Queries**: Generate `find_by_{field_name}` methods that return `Vec<T>` for regular fields or `Option<T>` for unique fields
 - **Relationship Optimization**: Eager loading and N+1 query prevention
-- **Composite Primary Keys**: Multi-field primary key support
 - **Soft Delete**: Optional soft delete with `deleted_at` timestamps
 
 ### Lower Priority

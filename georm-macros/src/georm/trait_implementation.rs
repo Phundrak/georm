@@ -1,3 +1,4 @@
+use super::composite_keys::IdType;
 use super::ir::GeormField;
 use quote::quote;
 
@@ -10,14 +11,38 @@ fn generate_find_all_query(table: &str) -> proc_macro2::TokenStream {
     }
 }
 
-fn generate_find_query(table: &str, id: &GeormField) -> proc_macro2::TokenStream {
-    let find_string = format!("SELECT * FROM {table} WHERE {} = $1", id.ident);
-    let ty = &id.ty;
-    quote! {
-        async fn find(pool: &::sqlx::PgPool, id: &#ty) -> ::sqlx::Result<Option<Self>> {
-            ::sqlx::query_as!(Self, #find_string, id)
-                .fetch_optional(pool)
-                .await
+fn generate_find_query(table: &str, id: &IdType) -> proc_macro2::TokenStream {
+    match id {
+        IdType::Simple {
+            field_name,
+            field_type,
+        } => {
+            let find_string = format!("SELECT * FROM {table} WHERE {} = $1", field_name);
+            quote! {
+                async fn find(pool: &::sqlx::PgPool, id: &#field_type) -> ::sqlx::Result<Option<Self>> {
+                    ::sqlx::query_as!(Self, #find_string, id)
+                    .fetch_optional(pool)
+                    .await
+                }
+            }
+        }
+        IdType::Composite { fields, field_type } => {
+            let id_match_string = fields
+                .iter()
+                .enumerate()
+                .map(|(i, field)| format!("{} = ${}", field.name, i + 1))
+                .collect::<Vec<String>>()
+                .join(" AND ");
+            let id_members: Vec<syn::Ident> =
+                fields.iter().map(|field| field.name.clone()).collect();
+            let find_string = format!("SELECT * FROM {table} WHERE {id_match_string}");
+            quote! {
+                async fn find(pool: &::sqlx::PgPool, id: &#field_type) -> ::sqlx::Result<Option<Self>> {
+                    ::sqlx::query_as!(Self, #find_string, #(id.#id_members),*)
+                    .fetch_optional(pool)
+                    .await
+                }
+            }
         }
     }
 }
@@ -50,28 +75,42 @@ fn generate_create_query(table: &str, fields: &[GeormField]) -> proc_macro2::Tok
 fn generate_update_query(
     table: &str,
     fields: &[GeormField],
-    id: &GeormField,
+    id: &IdType,
 ) -> proc_macro2::TokenStream {
-    let mut fields: Vec<&GeormField> = fields.iter().filter(|f| !f.id).collect();
-    let update_columns = fields
+    let non_id_fields: Vec<syn::Ident> = fields
+        .iter()
+        .filter_map(|f| if f.id { None } else { Some(f.ident.clone()) })
+        .collect();
+    let update_columns = non_id_fields
         .iter()
         .enumerate()
-        .map(|(i, &field)| format!("{} = ${}", field.ident, i + 1))
+        .map(|(i, field)| format!("{} = ${}", field, i + 1))
         .collect::<Vec<String>>()
         .join(", ");
-    let update_string = format!(
-        "UPDATE {table} SET {update_columns} WHERE {} = ${} RETURNING *",
-        id.ident,
-        fields.len() + 1
-    );
-    fields.push(id);
-    let field_idents: Vec<_> = fields.iter().map(|f| f.ident.clone()).collect();
+    let mut all_fields = non_id_fields.clone();
+    let where_clause = match id {
+        IdType::Simple { field_name, .. } => {
+            let where_clause = format!("{} = ${}", field_name, non_id_fields.len() + 1);
+            all_fields.push(field_name.clone());
+            where_clause
+        }
+        IdType::Composite { fields, .. } => fields
+            .iter()
+            .enumerate()
+            .map(|(i, field)| {
+                let where_clause = format!("{} = ${}", field.name, non_id_fields.len() + i + 1);
+                all_fields.push(field.name.clone());
+                where_clause
+            })
+            .collect::<Vec<String>>()
+            .join(" AND "),
+    };
+    let update_string =
+        format!("UPDATE {table} SET {update_columns} WHERE {where_clause} RETURNING *");
     quote! {
         async fn update(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Self> {
             ::sqlx::query_as!(
-                Self,
-                #update_string,
-                #(self.#field_idents),*
+                Self, #update_string, #(self.#all_fields),*
             )
             .fetch_one(pool)
             .await
@@ -79,12 +118,31 @@ fn generate_update_query(
     }
 }
 
-fn generate_delete_query(table: &str, id: &GeormField) -> proc_macro2::TokenStream {
-    let delete_string = format!("DELETE FROM {table} WHERE {} = $1", id.ident);
-    let ty = &id.ty;
+fn generate_delete_query(table: &str, id: &IdType) -> proc_macro2::TokenStream {
+    let where_clause = match id {
+        IdType::Simple { field_name, .. } => format!("{} = $1", field_name),
+        IdType::Composite { fields, .. } => fields
+            .iter()
+            .enumerate()
+            .map(|(i, field)| format!("{} = ${}", field.name, i + 1))
+            .collect::<Vec<String>>()
+            .join(" AND "),
+    };
+    let query_args = match id {
+        IdType::Simple { .. } => quote! { id },
+        IdType::Composite { fields, .. } => {
+            let fields: Vec<syn::Ident> = fields.iter().map(|f| f.name.clone()).collect();
+            quote! { #(id.#fields), * }
+        }
+    };
+    let id_type = match id {
+        IdType::Simple { field_type, .. } => quote! { #field_type },
+        IdType::Composite { field_type, .. } => quote! { #field_type },
+    };
+    let delete_string = format!("DELETE FROM {table} WHERE {where_clause}");
     quote! {
-        async fn delete_by_id(pool: &::sqlx::PgPool, id: &#ty) -> ::sqlx::Result<u64> {
-            let rows_affected = ::sqlx::query!(#delete_string, id)
+        async fn delete_by_id(pool: &::sqlx::PgPool, id: &#id_type) -> ::sqlx::Result<u64> {
+            let rows_affected = ::sqlx::query!(#delete_string, #query_args)
                 .execute(pool)
                 .await?
                 .rows_affected();
@@ -92,7 +150,7 @@ fn generate_delete_query(table: &str, id: &GeormField) -> proc_macro2::TokenStre
         }
 
         async fn delete(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<u64> {
-            Self::delete_by_id(pool, self.get_id()).await
+            Self::delete_by_id(pool, &self.get_id()).await
         }
     }
 }
@@ -100,7 +158,7 @@ fn generate_delete_query(table: &str, id: &GeormField) -> proc_macro2::TokenStre
 fn generate_upsert_query(
     table: &str,
     fields: &[GeormField],
-    id: &GeormField,
+    id: &IdType,
 ) -> proc_macro2::TokenStream {
     let inputs: Vec<String> = (1..=fields.len()).map(|num| format!("${num}")).collect();
     let columns = fields
@@ -108,6 +166,16 @@ fn generate_upsert_query(
         .map(|f| f.ident.to_string())
         .collect::<Vec<String>>()
         .join(", ");
+
+    let primary_key: proc_macro2::TokenStream = match id {
+        IdType::Simple { field_name, .. } => quote! {#field_name},
+        IdType::Composite { fields, .. } => {
+            let field_names: Vec<syn::Ident> = fields.iter().map(|f| f.name.clone()).collect();
+            quote! {
+                #(#field_names),*
+            }
+        }
+    };
 
     // For ON CONFLICT DO UPDATE, exclude the ID field from updates
     let update_assignments = fields
@@ -120,7 +188,7 @@ fn generate_upsert_query(
     let upsert_string = format!(
         "INSERT INTO {table} ({columns}) VALUES ({}) ON CONFLICT ({}) DO UPDATE SET {update_assignments} RETURNING *",
         inputs.join(", "),
-        id.ident
+        primary_key
     );
 
     let field_idents: Vec<syn::Ident> = fields.iter().map(|f| f.ident.clone()).collect();
@@ -138,12 +206,27 @@ fn generate_upsert_query(
     }
 }
 
-fn generate_get_id(id: &GeormField) -> proc_macro2::TokenStream {
-    let ident = &id.ident;
-    let ty = &id.ty;
-    quote! {
-        fn get_id(&self) -> &#ty {
-            &self.#ident
+fn generate_get_id(id: &IdType) -> proc_macro2::TokenStream {
+    match id {
+        IdType::Simple {
+            field_name,
+            field_type,
+        } => {
+            quote! {
+                fn get_id(&self) -> #field_type {
+                    self.#field_name.clone()
+                }
+            }
+        }
+        IdType::Composite { fields, field_type } => {
+            let field_names: Vec<syn::Ident> = fields.iter().map(|f| f.name.clone()).collect();
+            quote! {
+                fn get_id(&self) -> #field_type {
+                    #field_type {
+                        #(#field_names: self.#field_names),*
+                    }
+                }
+            }
         }
     }
 }
@@ -152,9 +235,12 @@ pub fn derive_trait(
     ast: &syn::DeriveInput,
     table: &str,
     fields: &[GeormField],
-    id: &GeormField,
+    id: &IdType,
 ) -> proc_macro2::TokenStream {
-    let ty = &id.ty;
+    let ty = match id {
+        IdType::Simple { field_type, .. } => quote! {#field_type},
+        IdType::Composite { field_type, .. } => quote! {#field_type},
+    };
 
     // define impl variables
     let ident = &ast.ident;

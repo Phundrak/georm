@@ -94,3 +94,14 @@ pub struct Genre {
     id: i32,
     name: String,
 }
+
+#[derive(Debug, Georm, PartialEq, Eq, Default)]
+#[georm(table = "UserRoles")]
+pub struct UserRole {
+    #[georm(id)]
+    pub user_id: i32,
+    #[georm(id)]
+    pub role_id: i32,
+    #[georm(defaultable)]
+    pub assigned_at: chrono::DateTime<chrono::Utc>,
+}

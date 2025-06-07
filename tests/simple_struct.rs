@@ -143,12 +143,12 @@ async fn delete_by_id_should_delete_only_one_entry(pool: sqlx::PgPool) -> sqlx::
     let id = 2;
     let all_authors = Author::find_all(&pool).await?;
     assert_eq!(3, all_authors.len());
-    assert!(all_authors.iter().any(|author| author.get_id() == &id));
+    assert!(all_authors.iter().any(|author| author.get_id() == id));
     let result = Author::delete_by_id(&pool, &id).await?;
     assert_eq!(1, result);
     let all_authors = Author::find_all(&pool).await?;
     assert_eq!(2, all_authors.len());
-    assert!(all_authors.iter().all(|author| author.get_id() != &id));
+    assert!(all_authors.iter().all(|author| author.get_id() != id));
     Ok(())
 }
 

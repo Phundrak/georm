@@ -138,7 +138,6 @@ pub fn derive_defaultable_struct(
     );
 
     quote! {
-        #[derive(Debug, Clone)]
         #vis struct #defaultable_struct_name {
             #(#defaultable_fields),*
         }

@@ -79,5 +79,5 @@ pub trait Georm<Id> {
     ) -> impl std::future::Future<Output = sqlx::Result<u64>> + Send;
 
     /// Returns the identifier of the entity.
-    fn get_id(&self) -> &Id;
+    fn get_id(&self) -> Id;
 }

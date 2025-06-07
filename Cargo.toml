@@ -39,7 +39,13 @@ sqlx = { workspace = true }
 georm-macros = { workspace = true }
 
 [dev-dependencies]
+chrono = { version = "0.4", features = ["serde"] }
 rand = "0.9"
+
+[dev-dependencies.sqlx]
+version = "0.8.6"
+default-features = false
+features = ["postgres", "runtime-tokio", "macros", "migrate", "chrono"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
