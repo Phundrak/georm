@@ -52,7 +52,7 @@ Add Georm and SQLx to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "macros"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres", "macros"] }
 georm = "0.1"
 ```
 
@@ -82,7 +82,7 @@ CREATE TABLE posts (
 ```rust
 use georm::Georm;
 
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(table = "authors")]
 pub struct Author {
     #[georm(id)]
@@ -91,7 +91,7 @@ pub struct Author {
     pub email: String,
 }
 
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(table = "posts")]
 pub struct Post {
     #[georm(id)]
@@ -153,7 +153,7 @@ async fn example(pool: &PgPool) -> sqlx::Result<()> {
 For fields with database defaults or auto-generated values, use the `defaultable` attribute:
 
 ```rust
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(table = "posts")]
 pub struct Post {
     #[georm(id, defaultable)]
@@ -192,7 +192,7 @@ Georm supports comprehensive relationship modeling with two approaches: field-le
 Use the `relation` attribute on foreign key fields to generate lookup methods:
 
 ```rust
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(table = "posts")]
 pub struct Post {
     #[georm(id)]
@@ -214,7 +214,7 @@ pub struct Post {
 For nullable relationships:
 
 ```rust
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(table = "posts")]
 pub struct Post {
     #[georm(id)]
@@ -239,7 +239,7 @@ Define relationships at the struct level to query related entities that referenc
 ##### One-to-One Relationships
 
 ```rust
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(
     table = "users",
     one_to_one = [{
@@ -261,7 +261,7 @@ pub struct User {
 ##### One-to-Many Relationships
 
 ```rust
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(
     table = "authors",
     one_to_many = [{
@@ -311,7 +311,7 @@ CREATE TABLE book_genres (
 ```
 
 ```rust
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(
     table = "books",
     many_to_many = [{
@@ -332,7 +332,7 @@ pub struct Book {
     pub title: String,
 }
 
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(
     table = "genres",
     many_to_many = [{
@@ -377,7 +377,7 @@ pub struct Genre {
 Here's a comprehensive example showing multiple relationship types:
 
 ```rust
-#[derive(sqlx::FromRow, Georm)]
+#[derive(Georm)]
 #[georm(
     table = "posts",
     one_to_many = [{
@@ -526,7 +526,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 #### Prerequisites
 
-- **Rust 1.81+**: Georm uses modern Rust features and follows the MSRV specified in `rust-toolchain.toml`
+- **Rust 1.86+**: Georm uses modern Rust features and follows the MSRV specified in `rust-toolchain.toml`
 - **PostgreSQL 12+**: Required for running tests and development
 - **Git**: For version control
 - **Jujutsu**: For version control (alternative to Git)
@@ -641,7 +641,7 @@ direnv allow
 ```
 
 The devenv configuration provides:
-- Exact Rust version (1.81) with required components
+- Exact Rust version (1.86) with required components
 - All development tools (just, cargo-deny, sqlx-cli, bacon)
 - LSP support (rust-analyzer)
 - SQL tooling (sqls for SQL language server)
