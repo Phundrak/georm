@@ -1,11 +1,12 @@
-use ir::GeormField;
 use quote::quote;
 
 mod composite_keys;
 mod defaultable_struct;
 mod ir;
+pub(crate) use ir::GeormField;
 mod relationships;
-mod trait_implementation;
+mod traits;
+pub(crate) use composite_keys::IdType;
 
 fn extract_georm_field_attrs(ast: &mut syn::DeriveInput) -> deluxe::Result<Vec<GeormField>> {
     let syn::Data::Struct(s) = &mut ast.data else {
@@ -50,8 +51,7 @@ pub fn georm_derive_macro2(
 
     let relationships =
         relationships::derive_relationships(&ast, &struct_attrs, &fields, &identifier);
-    let trait_impl =
-        trait_implementation::derive_trait(&ast, &struct_attrs.table, &fields, &identifier);
+    let trait_impl = traits::derive_trait(&ast, &struct_attrs.table, &fields, &identifier);
 
     let code = quote! {
         #id_struct
