@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 authors = ["Lucien Cartier-Tilet <lucien@phundrak.com>"]
 homepage = "https://github.com/Phundrak/georm"
@@ -27,7 +27,7 @@ repository.workspace = true
 version.workspace = true
 
 [workspace.dependencies]
-georm-macros = { version = "=0.1.1", path = "georm-macros" }
+georm-macros = { path = "georm-macros" }
 
 [workspace.dependencies.sqlx]
 version = "0.8.6"
