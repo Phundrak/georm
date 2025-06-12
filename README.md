@@ -565,16 +565,19 @@ cargo run help # For a list of all available actions
 
 ### High Priority
 - **Transaction Support**: Comprehensive transaction handling with atomic operations
+- **Simplified Relationship Syntax**: Remove redundant table/remote_id specifications by inferring them from target entity metadata
+- **Multi-Database Support**: MySQL and SQLite support with feature flags
 
 ### Medium Priority
 - **Composite Key Relationships**: Add relationship support (one-to-one, one-to-many, many-to-many) for entities with composite primary keys
-- **Multi-Database Support**: MySQL and SQLite support with feature flags
 - **Field-Based Queries**: Generate `find_by_{field_name}` methods that return `Vec<T>` for regular fields or `Option<T>` for unique fields
 - **Relationship Optimization**: Eager loading and N+1 query prevention
-- **Soft Delete**: Optional soft delete with `deleted_at` timestamps
+- **Automatic Table Name Inference**: Infer table names from struct names (PascalCase → snake_case plural), eliminating the need for explicit `#[georm(table = "...")]` attributes
+- **Alternative Attribute Syntax**: Introduce path-based attribute syntax as sugar (e.g., `#[table("users")]`, `#[id]`) while maintaining backward compatibility
 
 ### Lower Priority
 - **Migration Support**: Schema generation and evolution utilities
+- **Soft Delete**: Optional soft delete with `deleted_at` timestamps
 - **Enhanced Error Handling**: Custom error types with better context
 
 ## Contributing
