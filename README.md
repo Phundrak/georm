@@ -554,12 +554,14 @@ cargo run help # For a list of all available actions
 
 | Feature              | Georm | SeaORM | Diesel |
 |----------------------|-------|--------|--------|
-| Compile-time safety  | ✅   | ✅    | ✅    |
-| Relationship support | ✅   | ✅    | ✅    |
-| Async support        | ✅   | ✅    | ⚠️    |
+| Compile-time safety  | ✅    | ✅     | ✅     |
+| Relationship support | ✅    | ✅     | ✅     |
+| Async support        | ✅    | ✅     | ⚠️[^1]  |
 | Learning curve       | Low   | Medium | High   |
-| Macro simplicity     | ✅   | ❌    | ❌    |
-| Advanced queries     | ❌   | ✅    | ✅    |
+| Macro simplicity     | ✅    | ❌     | ❌     |
+| Advanced queries     | ❌    | ✅     | ✅     |
+
+[^1]: Requires `diesel-async`
 
 ## Roadmap
 
