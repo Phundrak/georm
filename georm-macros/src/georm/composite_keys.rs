@@ -37,7 +37,7 @@ fn generate_struct(
     let fields: Vec<proc_macro2::TokenStream> = fields
         .iter()
         .filter_map(|field| {
-            if field.id {
+            if field.is_id {
                 Some(field_to_code(field))
             } else {
                 None
@@ -56,7 +56,7 @@ pub fn create_primary_key(
     ast: &syn::DeriveInput,
     fields: &[GeormField],
 ) -> (IdType, proc_macro2::TokenStream) {
-    let georm_id_fields: Vec<&GeormField> = fields.iter().filter(|field| field.id).collect();
+    let georm_id_fields: Vec<&GeormField> = fields.iter().filter(|field| field.is_id).collect();
     let id_fields: Vec<IdField> = georm_id_fields
         .iter()
         .map(|field| IdField {

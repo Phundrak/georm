@@ -32,7 +32,7 @@ georm-macros = { version = "=0.2.1", path = "georm-macros" }
 [workspace.dependencies.sqlx]
 version = "0.8.6"
 default-features = false
-features = ["postgres", "runtime-tokio", "macros", "migrate"]
+features = ["postgres", "runtime-tokio", "macros", "migrate", "bigdecimal"]
 
 [dependencies]
 sqlx = { workspace = true }

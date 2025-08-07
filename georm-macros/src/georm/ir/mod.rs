@@ -27,6 +27,10 @@ struct GeormFieldAttributes {
     pub relation: Option<O2ORelationship>,
     #[deluxe(default = false)]
     pub defaultable: bool,
+    #[deluxe(default = false)]
+    pub generated: bool,
+    #[deluxe(default = false)]
+    pub generated_always: bool,
 }
 
 #[derive(deluxe::ParseMetaItem, Clone, Debug)]
@@ -40,14 +44,22 @@ pub struct O2ORelationship {
     pub name: String,
 }
 
+#[derive(Debug, Clone)]
+pub enum GeneratedType {
+    None,
+    ByDefault, // #[georm(generated)] - BY DEFAULT behaviour
+    Always,    // #[georm(generated_always)] - ALWAYS behaviour
+}
+
 #[derive(Clone, Debug)]
 pub struct GeormField {
     pub ident: syn::Ident,
     pub field: syn::Field,
     pub ty: syn::Type,
-    pub id: bool,
+    pub is_id: bool,
+    pub is_defaultable: bool,
+    pub generated_type: GeneratedType,
     pub relation: Option<O2ORelationship>,
-    pub defaultable: bool,
 }
 
 impl GeormField {
@@ -60,13 +72,24 @@ impl GeormField {
             id,
             relation,
             defaultable,
+            generated,
+            generated_always,
         } = attrs;
 
         // Validate that defaultable is not used on Option<T> fields
         if defaultable && Self::is_option_type(&ty) {
             panic!(
-                "Field '{}' is already an Option<T> and cannot be marked as defaultable. \
+                "Field '{}' is already an Option<T> and cannot be marked as defaultable.\
                 Remove the #[georm(defaultable)] attribute.",
+                ident
+            );
+        }
+
+        if generated && generated_always {
+            panic!(
+                "Field '{}' cannot have both the #[georm(generated)] and \
+                #[georm(generated_always)] attributes at the same time. Remove one\
+                of them before continuing.",
                 ident
             );
         }
@@ -74,10 +97,17 @@ impl GeormField {
         Self {
             ident,
             field: field.to_owned(),
-            id,
+            is_id: id,
             ty,
             relation,
-            defaultable,
+            is_defaultable: defaultable,
+            generated_type: if generated_always {
+                GeneratedType::Always
+            } else if generated {
+                GeneratedType::ByDefault
+            } else {
+                GeneratedType::None
+            },
         }
     }
 
@@ -93,6 +123,26 @@ impl GeormField {
             }
             _ => false,
         }
+    }
+
+    /// Check if field should be excluded from INSERT statements
+    pub fn exclude_from_insert(&self) -> bool {
+        matches!(self.generated_type, GeneratedType::Always)
+    }
+
+    /// Check if field should be excluded from UPDATE statements
+    pub fn exclude_from_update(&self) -> bool {
+        matches!(self.generated_type, GeneratedType::Always)
+    }
+
+    /// Check if field should behave like a defaultable field
+    pub fn is_defaultable_behavior(&self) -> bool {
+        self.is_defaultable || matches!(self.generated_type, GeneratedType::ByDefault)
+    }
+
+    /// Check if field is any type of generated field
+    pub fn is_any_generated(&self) -> bool {
+        !matches!(self.generated_type, GeneratedType::None)
     }
 }
 

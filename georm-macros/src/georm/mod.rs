@@ -24,7 +24,7 @@ fn extract_georm_field_attrs(ast: &mut syn::DeriveInput) -> deluxe::Result<Vec<G
     let identifiers: Vec<GeormField> = fields
         .clone()
         .into_iter()
-        .filter(|field| field.id)
+        .filter(|field| field.is_id)
         .collect();
     if identifiers.is_empty() {
         Err(syn::Error::new_spanned(

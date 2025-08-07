@@ -9,6 +9,8 @@
 //! or something similar. The type `<StructName>Default` implements the
 //! `Defaultable` trait.
 
+use crate::georm::ir::GeneratedType;
+
 use super::ir::{GeormField, GeormStructAttributes};
 use quote::quote;
 
@@ -19,7 +21,7 @@ fn create_defaultable_field(field: &GeormField) -> proc_macro2::TokenStream {
 
     // If the field is marked as defaultable, wrap it in Option<T>
     // Otherwise, keep the original type
-    let field_type = if field.defaultable {
+    let field_type = if field.is_defaultable_behavior() {
         quote! { Option<#ty> }
     } else {
         quote! { #ty }
@@ -41,13 +43,25 @@ fn generate_defaultable_trait_impl(
     // Find the ID field
     let id_field = fields
         .iter()
-        .find(|field| field.id)
+        .find(|field| field.is_id)
         .expect("Must have an ID field");
     let id_type = &id_field.ty;
 
+    // Remove always generated fields
+    let fields: Vec<&GeormField> = fields
+        .iter()
+        .filter(|field| !matches!(field.generated_type, GeneratedType::Always))
+        .collect();
+
     // Separate defaultable and non-defaultable fields
-    let non_defaultable_fields: Vec<_> = fields.iter().filter(|f| !f.defaultable).collect();
-    let defaultable_fields: Vec<_> = fields.iter().filter(|f| f.defaultable).collect();
+    let non_defaultable_fields: Vec<_> = fields
+        .iter()
+        .filter(|f| !f.is_defaultable_behavior())
+        .collect();
+    let defaultable_fields: Vec<_> = fields
+        .iter()
+        .filter(|f| f.is_defaultable_behavior())
+        .collect();
 
     // Build static parts for non-defaultable fields
     let static_field_names: Vec<String> = non_defaultable_fields
@@ -119,7 +133,7 @@ pub fn derive_defaultable_struct(
     fields: &[GeormField],
 ) -> proc_macro2::TokenStream {
     // Only generate if there are defaultable fields
-    if fields.iter().all(|field| !field.defaultable) {
+    if fields.iter().all(|field| !field.is_defaultable_behavior()) {
         return quote! {};
     }
 
@@ -127,8 +141,13 @@ pub fn derive_defaultable_struct(
     let vis = &ast.vis;
     let defaultable_struct_name = quote::format_ident!("{}Default", struct_name);
 
-    let defaultable_fields: Vec<proc_macro2::TokenStream> =
-        fields.iter().map(create_defaultable_field).collect();
+    let defaultable_fields: Vec<proc_macro2::TokenStream> = fields
+        .iter()
+        .flat_map(|field| match field.generated_type {
+            GeneratedType::Always => None,
+            _ => Some(create_defaultable_field(field)),
+        })
+        .collect();
 
     let trait_impl = generate_defaultable_trait_impl(
         struct_name,

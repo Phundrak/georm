@@ -1,4 +1,5 @@
 use georm::Georm;
+use sqlx::types::BigDecimal;
 
 #[derive(Debug, Georm, PartialEq, Eq, Default)]
 #[georm(
@@ -104,4 +105,27 @@ pub struct UserRole {
     pub role_id: i32,
     #[georm(defaultable)]
     pub assigned_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Georm, PartialEq, Default, Clone)]
+#[georm(table = "products")]
+pub struct Product {
+    #[georm(id, generated_always)]
+    pub id: i32,
+    #[georm(generated)]
+    pub sku_number: i32,
+    pub name: String,
+    pub price: BigDecimal,
+    pub discount_percent: i32,
+    #[georm(generated_always)]
+    pub final_price: Option<BigDecimal>, // Apparently this can be null ?
+}
+
+impl Product {
+    #[allow(dead_code)]
+    pub async fn find_by_name(name: String, pool: &sqlx::PgPool) -> ::sqlx::Result<Self> {
+        ::sqlx::query_as!(Self, "SELECT * FROM products WHERE name = $1", name)
+            .fetch_one(pool)
+            .await
+    }
 }

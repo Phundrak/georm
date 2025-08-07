@@ -1,23 +1,30 @@
 use crate::georm::GeormField;
 use quote::quote;
 
-pub fn generate_create_query(table: &str, fields: &[GeormField]) -> proc_macro2::TokenStream {
-    let inputs: Vec<String> = (1..=fields.len()).map(|num| format!("${num}")).collect();
-    let create_string = format!(
-        "INSERT INTO {table} ({}) VALUES ({}) RETURNING *",
-        fields
-            .iter()
-            .map(|f| f.ident.to_string())
-            .collect::<Vec<String>>()
-            .join(", "),
-        inputs.join(", ")
+pub fn generate_create_query(table_name: &str, fields: &[GeormField]) -> proc_macro2::TokenStream {
+    let insert_fields: Vec<&GeormField> = fields
+        .iter()
+        .filter(|field| !field.exclude_from_insert())
+        .collect();
+    let field_names: Vec<String> = insert_fields
+        .iter()
+        .map(|field| field.ident.to_string())
+        .collect();
+    let field_idents: Vec<syn::Ident> = insert_fields
+        .iter()
+        .map(|field| field.ident.clone())
+        .collect();
+    let placeholders: Vec<String> = (1..=insert_fields.len()).map(|i| format!("${i}")).collect();
+    let query = format!(
+        "INSERT INTO {table_name} ({}) VALUES ({}) RETURNING *",
+        field_names.join(", "),
+        placeholders.join(", ")
     );
-    let field_idents: Vec<syn::Ident> = fields.iter().map(|f| f.ident.clone()).collect();
     quote! {
         async fn create(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Self> {
             ::sqlx::query_as!(
                 Self,
-                #create_string,
+                #query,
                 #(self.#field_idents),*
             )
             .fetch_one(pool)

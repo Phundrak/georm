@@ -53,7 +53,7 @@ pub fn derive_trait(
     let get_all = find::generate_find_all_query(table);
     let find_query = find::generate_find_query(table, id);
     let create_query = create::generate_create_query(table, fields);
-    let update_query = update::generate_update_query(table, fields, id);
+    let update_query = update::generate_update_query(table, fields);
     let upsert_query = upsert::generate_upsert_query(table, fields, id);
     let delete_query = delete::generate_delete_query(table, id);
     quote! {
