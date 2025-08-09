@@ -38,7 +38,10 @@ impl Profile {
         self.bio.clone().unwrap_or_default()
     }
 
-    pub async fn try_new(user_id: i32, pool: &sqlx::PgPool) -> Result<Self> {
+    pub async fn try_new<'e, E>(user_id: i32, executor: E) -> Result<Self>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let profile = ProfileDefault {
             user_id,
             id: None,
@@ -46,20 +49,23 @@ impl Profile {
             display_name: None,
         };
         profile
-            .create(pool)
+            .create(executor)
             .await
             .map_err(UserInputError::DatabaseError)
     }
 
-    pub async fn update_interactive(
+    pub async fn update_interactive<'e, E>(
         &mut self,
         display_name: Option<String>,
         bio: Option<String>,
-        pool: &sqlx::PgPool,
-    ) -> Result<Self> {
+        executor: E
+    ) -> Result<Self>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         self.display_name = display_name;
         self.bio = bio;
-        self.update(pool)
+        self.update(executor)
             .await
             .map_err(UserInputError::DatabaseError)
     }

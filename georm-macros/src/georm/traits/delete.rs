@@ -24,16 +24,22 @@ pub fn generate_delete_query(table: &str, id: &IdType) -> proc_macro2::TokenStre
     };
     let delete_string = format!("DELETE FROM {table} WHERE {where_clause}");
     quote! {
-        async fn delete_by_id(pool: &::sqlx::PgPool, id: &#id_type) -> ::sqlx::Result<u64> {
+        async fn delete<'e, E>(&self, mut executor: E) -> ::sqlx::Result<u64>
+        where
+            E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+        {
+            Self::delete_by_id(executor, &self.get_id()).await
+        }
+
+        async fn delete_by_id<'e, E>(mut executor: E, id: &#id_type) -> ::sqlx::Result<u64>
+        where
+            E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+        {
             let rows_affected = ::sqlx::query!(#delete_string, #query_args)
-                .execute(pool)
+                .execute(executor)
                 .await?
                 .rows_affected();
             Ok(rows_affected)
-        }
-
-        async fn delete(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<u64> {
-            Self::delete_by_id(pool, &self.get_id()).await
         }
     }
 }

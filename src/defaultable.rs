@@ -1,3 +1,5 @@
+use sqlx::{Executor, Postgres};
+
 /// Trait for creating entities with database defaults and auto-generated values.
 ///
 /// This trait is automatically implemented on generated companion structs for entities
@@ -269,10 +271,11 @@ pub trait Defaultable<Id, Entity> {
     /// };
     /// let created = post_default.create(&pool).await?;
     /// ```
-    fn create(
+    fn create<'e, E>(
         &self,
-        pool: &sqlx::PgPool,
+        executor: E,
     ) -> impl std::future::Future<Output = sqlx::Result<Entity>> + Send
     where
-        Self: Sized;
+        Self: Sized,
+        E: Executor<'e, Database = Postgres>;
 }

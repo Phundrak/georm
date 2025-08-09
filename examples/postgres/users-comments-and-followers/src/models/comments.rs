@@ -18,8 +18,11 @@ pub struct Comment {
 }
 
 impl Comment {
-    pub async fn select_comment(prompt: &str, pool: &sqlx::PgPool) -> Result<Self> {
-        let comments: HashMap<String, Self> = Self::find_all(pool)
+    pub async fn select_comment<'e, E>(prompt: &str, executor: E) -> Result<Self>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
+        let comments: HashMap<String, Self> = Self::find_all(executor)
             .await?
             .into_iter()
             .map(|comment| (comment.content.clone(), comment))

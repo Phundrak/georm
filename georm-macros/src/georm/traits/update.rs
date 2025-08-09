@@ -28,14 +28,17 @@ pub fn generate_update_query(table_name: &str, fields: &[GeormField]) -> proc_ma
         where_clauses.join(" AND ")
     );
     quote! {
-        async fn update(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Self> {
+        async fn update<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Self>
+        where
+            E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+        {
             ::sqlx::query_as!(
                 Self,
                 #query,
                 #(self.#update_idents),*,
                 #(self.#id_idents),*
             )
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
         }
     }

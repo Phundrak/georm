@@ -1,5 +1,5 @@
 use georm::Georm;
-use sqlx::types::BigDecimal;
+use sqlx::{Postgres, types::BigDecimal};
 
 #[derive(Debug, Georm, PartialEq, Eq, Default)]
 #[georm(
@@ -123,9 +123,12 @@ pub struct Product {
 
 impl Product {
     #[allow(dead_code)]
-    pub async fn find_by_name(name: String, pool: &sqlx::PgPool) -> ::sqlx::Result<Self> {
+    pub async fn find_by_name<'e, E>(name: String, executor: E) -> ::sqlx::Result<Self>
+    where
+        E: sqlx::Executor<'e, Database = Postgres>,
+    {
         ::sqlx::query_as!(Self, "SELECT * FROM products WHERE name = $1", name)
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
     }
 }

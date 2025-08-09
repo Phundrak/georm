@@ -4,8 +4,11 @@ use quote::quote;
 pub fn generate_find_all_query(table: &str) -> proc_macro2::TokenStream {
     let find_string = format!("SELECT * FROM {table}");
     quote! {
-        async fn find_all(pool: &::sqlx::PgPool) -> ::sqlx::Result<Vec<Self>> {
-            ::sqlx::query_as!(Self, #find_string).fetch_all(pool).await
+        async fn find_all<'e, E>(mut executor: E) -> ::sqlx::Result<Vec<Self>>
+        where
+            E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+        {
+            ::sqlx::query_as!(Self, #find_string).fetch_all(executor).await
         }
     }
 }
@@ -18,10 +21,13 @@ pub fn generate_find_query(table: &str, id: &IdType) -> proc_macro2::TokenStream
         } => {
             let find_string = format!("SELECT * FROM {table} WHERE {} = $1", field_name);
             quote! {
-                async fn find(pool: &::sqlx::PgPool, id: &#field_type) -> ::sqlx::Result<Option<Self>> {
+                async fn find<'e, E>(mut executor: E, id: &#field_type) -> ::sqlx::Result<Option<Self>>
+                where
+                    E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+                {
                     ::sqlx::query_as!(Self, #find_string, id)
-                    .fetch_optional(pool)
-                    .await
+                        .fetch_optional(executor)
+                        .await
                 }
             }
         }
@@ -36,10 +42,13 @@ pub fn generate_find_query(table: &str, id: &IdType) -> proc_macro2::TokenStream
                 fields.iter().map(|field| field.name.clone()).collect();
             let find_string = format!("SELECT * FROM {table} WHERE {id_match_string}");
             quote! {
-                async fn find(pool: &::sqlx::PgPool, id: &#field_type) -> ::sqlx::Result<Option<Self>> {
+                async fn find<'e, E>(mut executor: E, id: &#field_type) -> ::sqlx::Result<Option<Self>>
+                where
+                    E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+                {
                     ::sqlx::query_as!(Self, #find_string, #(id.#id_members),*)
-                    .fetch_optional(pool)
-                    .await
+                        .fetch_optional(executor)
+                        .await
                 }
             }
         }

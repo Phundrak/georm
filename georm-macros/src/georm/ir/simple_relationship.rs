@@ -45,8 +45,11 @@ impl From<&SimpleRelationship<OneToOne>> for proc_macro2::TokenStream {
         let entity = &value.entity;
         let function = value.make_function_name();
         quote! {
-            pub async fn #function(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Option<#entity>> {
-                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_optional(pool).await
+            pub async fn #function<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Option<#entity>>
+            where
+                E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+            {
+                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_optional(executor).await
             }
         }
     }
@@ -58,8 +61,11 @@ impl From<&SimpleRelationship<OneToMany>> for proc_macro2::TokenStream {
         let entity = &value.entity;
         let function = value.make_function_name();
         quote! {
-            pub async fn #function(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Vec<#entity>> {
-                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_all(pool).await
+            pub async fn #function<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Vec<#entity>>
+            where
+                E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+            {
+                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_all(executor).await
             }
         }
     }

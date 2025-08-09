@@ -50,8 +50,11 @@ impl From<&str> for UserDefault {
 }
 
 impl User {
-    async fn select_user(prompt: &str, pool: &sqlx::PgPool) -> Result<Self> {
-        let users: HashMap<String, Self> = Self::find_all(pool)
+    async fn select_user<'e, E>(prompt: &str, executor: E) -> Result<Self>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
+        let users: HashMap<String, Self> = Self::find_all(executor)
             .await?
             .into_iter()
             .map(|user| (user.username.clone(), user))
@@ -63,41 +66,50 @@ impl User {
         Ok(user.clone())
     }
 
-    pub async fn get_user_by_id_or_select(
+    pub async fn get_user_by_id_or_select<'e, E>(
         id: Option<i32>,
         prompt: &str,
-        pool: &sqlx::PgPool,
-    ) -> Result<Self> {
+        executor: E
+    ) -> Result<Self>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let user = match id {
-            Some(id) => Self::find(pool, &id)
+            Some(id) => Self::find(executor, &id)
                 .await?
                 .ok_or(UserInputError::UserDoesNotExist)?,
-            None => Self::select_user(prompt, pool).await?,
+            None => Self::select_user(prompt, executor).await?,
         };
         Ok(user)
     }
 
-    pub async fn get_user_by_username_or_select(
+    pub async fn get_user_by_username_or_select<'e, E>(
         username: Option<&str>,
         prompt: &str,
-        pool: &sqlx::PgPool,
-    ) -> Result<Self> {
+        executor: E,
+    ) -> Result<Self>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         let user = match username {
-            Some(username) => Self::find_by_username(username, pool)
+            Some(username) => Self::find_by_username(username, executor)
                 .await?
                 .ok_or(UserInputError::UserDoesNotExist)?,
-            None => Self::select_user(prompt, pool).await?,
+            None => Self::select_user(prompt, executor).await?,
         };
         Ok(user)
     }
 
-    pub async fn find_by_username(username: &str, pool: &sqlx::PgPool) -> Result<Option<Self>> {
+    pub async fn find_by_username<'e, E>(username: &str, executor: E) -> Result<Option<Self>>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
         sqlx::query_as!(
             Self,
             "SELECT * FROM Users u WHERE u.username = $1",
             username
         )
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await
         .map_err(UserInputError::DatabaseError)
     }
@@ -116,7 +128,8 @@ impl User {
         Ok(user)
     }
 
-    pub async fn update_profile(id: Option<i32>, pool: &sqlx::PgPool) -> Result<(User, Profile)> {
+    pub async fn update_profile(id: Option<i32>, pool: &sqlx::PgPool) -> Result<(User, Profile)>
+    {
         let prompt = "Select the user whose profile you want to update";
         let user = Self::get_user_by_id_or_select(id, prompt, pool).await?;
         let profile = match user.get_profile(pool).await? {

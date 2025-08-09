@@ -71,8 +71,11 @@ WHERE local.{} = $1",
             value.local.id
         );
         quote! {
-            pub async fn #function(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Vec<#entity>> {
-                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_all(pool).await
+            pub async fn #function<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Vec<#entity>>
+            where
+                E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+            {
+                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_all(executor).await
             }
         }
     }

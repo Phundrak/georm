@@ -1,3 +1,5 @@
+use sqlx::{Executor, Postgres};
+
 /// Core database operations trait for Georm entities.
 ///
 /// This trait is automatically implemented by the `#[derive(Georm)]` macro and provides
@@ -118,11 +120,12 @@ pub trait Georm<Id> {
     /// # Errors
     /// Returns `sqlx::Error` for database connection issues, permission problems,
     /// or if the table doesn't exist.
-    fn find_all(
-        pool: &sqlx::PgPool,
+    fn find_all<'e, E>(
+        executor: E,
     ) -> impl ::std::future::Future<Output = ::sqlx::Result<Vec<Self>>> + Send
     where
-        Self: Sized;
+        Self: Sized,
+        E: Executor<'e, Database = Postgres>;
 
     /// Find a single entity by its primary key.
     ///
@@ -152,12 +155,13 @@ pub trait Georm<Id> {
     /// Returns `sqlx::Error` for database connection issues, type conversion errors,
     /// or query execution problems. Note that not finding a record is not an error
     /// - it returns `Ok(None)`.
-    fn find(
-        pool: &sqlx::PgPool,
+    fn find<'e, E>(
+        executor: E,
         id: &Id,
     ) -> impl std::future::Future<Output = sqlx::Result<Option<Self>>> + Send
     where
-        Self: Sized;
+        Self: Sized,
+        E: Executor<'e, Database = Postgres>;
 
     /// Insert this entity as a new record in the database.
     ///
@@ -187,16 +191,17 @@ pub trait Georm<Id> {
     /// # Errors
     /// Returns `sqlx::Error` for:
     /// - Unique constraint violations
-    /// - Foreign key constraint violations  
+    /// - Foreign key constraint violations
     /// - NOT NULL constraint violations
     /// - Database connection issues
     /// - Permission problems
-    fn create(
+    fn create<'e, E>(
         &self,
-        pool: &sqlx::PgPool,
+        executor: E,
     ) -> impl std::future::Future<Output = sqlx::Result<Self>> + Send
     where
-        Self: Sized;
+        Self: Sized,
+        E: Executor<'e, Database = Postgres>;
 
     /// Update an existing entity in the database.
     ///
@@ -229,12 +234,13 @@ pub trait Georm<Id> {
     /// - Constraint violations (unique, foreign key, etc.)
     /// - Database connection issues
     /// - Permission problems
-    fn update(
+    fn update<'e, E>(
         &self,
-        pool: &sqlx::PgPool,
+        executor: E,
     ) -> impl std::future::Future<Output = sqlx::Result<Self>> + Send
     where
-        Self: Sized;
+        Self: Sized,
+        E: Executor<'e, Database = Postgres>;
 
     /// Insert or update this entity using PostgreSQL's upsert functionality.
     ///
@@ -267,12 +273,13 @@ pub trait Georm<Id> {
     /// - Non-primary-key constraint violations
     /// - Database connection issues
     /// - Permission problems
-    fn create_or_update(
+    fn create_or_update<'e, E>(
         &self,
-        pool: &sqlx::PgPool,
+        executor: E,
     ) -> impl ::std::future::Future<Output = sqlx::Result<Self>>
     where
-        Self: Sized;
+        Self: Sized,
+        E: Executor<'e, Database = Postgres>;
 
     /// Delete this entity from the database.
     ///
@@ -303,10 +310,12 @@ pub trait Georm<Id> {
     /// - Foreign key constraint violations (referenced by other tables)
     /// - Database connection issues
     /// - Permission problems
-    fn delete(
+    fn delete<'e, E>(
         &self,
-        pool: &sqlx::PgPool,
-    ) -> impl std::future::Future<Output = sqlx::Result<u64>> + Send;
+        executor: E,
+    ) -> impl std::future::Future<Output = sqlx::Result<u64>> + Send
+    where
+        E: Executor<'e, Database = Postgres>;
 
     /// Delete an entity by its primary key without needing an entity instance.
     ///
@@ -341,10 +350,12 @@ pub trait Georm<Id> {
     /// - Foreign key constraint violations (referenced by other tables)
     /// - Database connection issues
     /// - Permission problems
-    fn delete_by_id(
-        pool: &sqlx::PgPool,
+    fn delete_by_id<'e, E>(
+        executor: E,
         id: &Id,
-    ) -> impl std::future::Future<Output = sqlx::Result<u64>> + Send;
+    ) -> impl std::future::Future<Output = sqlx::Result<u64>> + Send
+    where
+        E: Executor<'e, Database = Postgres>;
 
     /// Get the primary key of this entity.
     ///
@@ -362,7 +373,7 @@ pub trait Georm<Id> {
     /// let user = User { id: 42, username: "alice".into(), email: "alice@example.com".into() };
     /// let id = user.get_id(); // Returns 42
     ///
-    /// // Composite primary key  
+    /// // Composite primary key
     /// let user_role = UserRole { user_id: 1, role_id: 2, assigned_at: now };
     /// let id = user_role.get_id(); // Returns UserRoleId { user_id: 1, role_id: 2 }
     /// ```

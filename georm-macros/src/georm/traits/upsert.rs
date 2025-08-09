@@ -44,13 +44,16 @@ pub fn generate_upsert_query(
     let field_idents: Vec<syn::Ident> = fields.iter().map(|f| f.ident.clone()).collect();
 
     quote! {
-        async fn create_or_update(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Self> {
+        async fn create_or_update<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Self>
+        where
+            E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+        {
             ::sqlx::query_as!(
                 Self,
                 #upsert_string,
                 #(self.#field_idents),*
             )
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
         }
     }

@@ -21,13 +21,16 @@ pub fn generate_create_query(table_name: &str, fields: &[GeormField]) -> proc_ma
         placeholders.join(", ")
     );
     quote! {
-        async fn create(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<Self> {
+        async fn create<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Self>
+        where
+            E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+        {
             ::sqlx::query_as!(
                 Self,
                 #query,
                 #(self.#field_idents),*
             )
-            .fetch_one(pool)
+            .fetch_one(executor)
             .await
         }
     }

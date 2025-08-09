@@ -200,7 +200,9 @@
 //! }
 //!
 //! impl Defaultable<i32, Product> for ProductDefault {
-//!     async fn create(&self, pool: &sqlx::PgPool) -> sqlx::Result<Product>;
+//!     async fn create<'e, E>(&self, pool: E) -> sqlx::Result<Post>
+//!     where
+//!         E: sqlx::Executor<'e, Database = sqlx::Postgres>;
 //! }
 //! ```
 //!

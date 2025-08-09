@@ -61,7 +61,8 @@ async fn create_comment(
     pool: &sqlx::PgPool,
 ) -> Result {
     let prompt = "Who is creating the comment?";
-    let user = User::get_user_by_username_or_select(username.as_deref(), prompt, pool).await?;
+    let mut tx = pool.begin().await?;
+    let user = User::get_user_by_username_or_select(username.as_deref(), prompt, &mut *tx).await?;
     let content = match text {
         Some(text) => text,
         None => inquire::Text::new("Content of the comment:")
@@ -73,29 +74,33 @@ async fn create_comment(
         content,
         id: None,
     };
-    let comment = comment.create(pool).await?;
+    let comment = comment.create(&mut *tx).await?;
+    tx.commit().await?;
     println!("Successfuly created comment:\n{comment}");
     Ok(())
 }
 
 async fn remove_comment(id: Option<i32>, pool: &sqlx::PgPool) -> Result {
     let prompt = "Select the comment to remove:";
+    let mut tx = pool.begin().await?;
     let comment = match id {
-        Some(id) => Comment::find(pool, &id)
+        Some(id) => Comment::find(&mut *tx, &id)
             .await
             .map_err(UserInputError::DatabaseError)?
             .ok_or(UserInputError::CommentDoesNotExist)?,
-        None => Comment::select_comment(prompt, pool).await?,
+        None => Comment::select_comment(prompt, &mut *tx).await?,
     };
-    comment.delete(pool).await?;
+    comment.delete(&mut *tx).await?;
+    tx.commit().await?;
     Ok(())
 }
 
 async fn remove_user_comment(username: Option<String>, pool: &sqlx::PgPool) -> Result {
+    let mut tx = pool.begin().await?;
     let prompt = "Select user whose comment you want to delete:";
-    let user = User::get_user_by_username_or_select(username.as_deref(), prompt, pool).await?;
+    let user = User::get_user_by_username_or_select(username.as_deref(), prompt, &mut *tx).await?;
     let comments: HashMap<String, Comment> = user
-        .get_comments(pool)
+        .get_comments(&mut *tx)
         .await?
         .into_iter()
         .map(|comment| (comment.content.clone(), comment))
@@ -105,7 +110,8 @@ async fn remove_user_comment(username: Option<String>, pool: &sqlx::PgPool) -> R
             .prompt()
             .map_err(UserInputError::InquireError)?;
     let comment: &Comment = comments.get(&selected_comment_content).unwrap();
-    comment.delete(pool).await?;
+    comment.delete(&mut *tx).await?;
+    tx.commit().await?;
     Ok(())
 }
 

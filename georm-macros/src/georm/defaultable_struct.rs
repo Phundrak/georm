@@ -94,7 +94,10 @@ fn generate_defaultable_trait_impl(
 
     quote! {
         impl ::georm::Defaultable<#id_type, #struct_name> for #defaultable_struct_name {
-            async fn create(&self, pool: &::sqlx::PgPool) -> ::sqlx::Result<#struct_name> {
+            async fn create<'e, E>(&self, mut executor: E) -> ::sqlx::Result<#struct_name>
+            where
+                E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+            {
                 let mut dynamic_fields = Vec::new();
 
                 #(#field_checks)*
@@ -121,7 +124,7 @@ fn generate_defaultable_trait_impl(
                 // Then bind defaultable fields that have values
                 #(#bind_checks)*
 
-                query_builder.fetch_one(pool).await
+                query_builder.fetch_one(executor).await
             }
         }
     }

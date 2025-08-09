@@ -38,6 +38,7 @@ Georm is a lightweight, opinionated Object-Relational Mapping (ORM) library buil
 ### Key Features
 
 - **Type Safety**: Compile-time verified SQL queries using SQLx macros
+- **Flexible Executor**: Works with both `PgPool` and `Transaction` for atomic operations.
 - **Zero Runtime Cost**: No reflection or runtime query building
 - **Simple API**: Intuitive derive macros for common operations
 - **Relationship Support**: One-to-one, one-to-many, and many-to-many relationships
@@ -116,13 +117,16 @@ pub struct Post {
 use sqlx::PgPool;
 
 async fn example(pool: &PgPool) -> sqlx::Result<()> {
+    // Start a transaction
+    let mut tx = pool.begin().await?;
+
     // Create an author
     let author = Author {
         id: 0, // Will be auto-generated
         name: "Jane Doe".to_string(),
         email: "jane@example.com".to_string(),
     };
-    let author = author.create(pool).await?;
+    let author = author.create(&mut *tx).await?;
 
     // Create a post
     let post = Post {
@@ -133,9 +137,12 @@ async fn example(pool: &PgPool) -> sqlx::Result<()> {
         author_id: author.id,
         created_at: chrono::Utc::now(),
     };
-    let post = post.create(pool).await?;
+    let post = post.create(&mut *tx).await?;
 
-    // Find all posts
+    // Commit the transaction
+    tx.commit().await?;
+
+    // Find all posts (using the pool directly)
     let all_posts = Post::find_all(pool).await?;
 
     // Get the post's author
@@ -521,22 +528,41 @@ pub struct Post {
 
 ### Core Operations
 
-All entities implementing `Georm<Id>` get these methods:
+All entities implementing `Georm<Id>` get these methods. All database operations now accept any `sqlx`-compatible executor, which can be a connection pool (`&PgPool`) or a transaction (`&mut Transaction<'_, Postgres>`).
+
+```rust
+async fn example(pool: &PgPool, post_id: i32) -> sqlx::Result<()> {
+    // Operations on the pool
+    let all_posts = Post::find_all(pool).await?;
+
+    // Operations within a transaction
+    let mut tx = pool.begin().await?;
+    let post = Post::find(&mut *tx, &post_id).await?;
+    if let Some(post) = post {
+        post.delete(&mut *tx).await?;
+    }
+    tx.commit().await?;
+
+    Ok(())
+}
+```
+
+The available methods are:
 
 ```rust
 // Query operations
-Post::find_all(pool).await?;              // Find all posts
-Post::find(pool, &post_id).await?;        // Find by ID
+Post::find_all(executor).await?;
+Post::find(executor, &post_id).await?;
 
 // Mutation operations
-post.create(pool).await?;                 // Insert new record
-post.update(pool).await?;                 // Update existing record
-post.create_or_update(pool).await?;       // Upsert operation
-post.delete(pool).await?;                 // Delete this record
-Post::delete_by_id(pool, &post_id).await?; // Delete by ID
+post.create(executor).await?;
+post.update(executor).await?;
+post.create_or_update(executor).await?;
+post.delete(executor).await?;
+Post::delete_by_id(executor, &post_id).await?;
 
 // Utility
-post.get_id();                            // Get entity ID
+post.get_id();
 ```
 
 ### Defaultable Operations
@@ -624,7 +650,6 @@ cargo run help # For a list of all available actions
 ## Roadmap
 
 ### High Priority
-- **Transaction Support**: Comprehensive transaction handling with atomic operations
 - **Simplified Relationship Syntax**: Remove redundant table/remote_id specifications by inferring them from target entity metadata
 - **Multi-Database Support**: MySQL and SQLite support with feature flags
 

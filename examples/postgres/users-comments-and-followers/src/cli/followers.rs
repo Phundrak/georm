@@ -53,16 +53,17 @@ async fn follow_user(
     followed: Option<String>,
     pool: &sqlx::PgPool,
 ) -> Result {
+    let mut tx = pool.begin().await?;
     let follower = User::get_user_by_username_or_select(
         follower.as_deref(),
         "Select who will be following someone:",
-        pool,
+        &mut *tx,
     )
     .await?;
     let followed = User::get_user_by_username_or_select(
         followed.as_deref(),
         "Select who will be followed:",
-        pool,
+        &mut *tx,
     )
     .await?;
     let follow = FollowerDefault {
@@ -70,17 +71,22 @@ async fn follow_user(
         follower: follower.id,
         followed: followed.id,
     };
-    follow.create(pool).await?;
+    follow.create(&mut *tx).await?;
+    tx.commit().await?;
     println!("User {follower} now follows {followed}");
     Ok(())
 }
 
 async fn unfollow_user(follower: Option<String>, pool: &sqlx::PgPool) -> Result {
-    let follower =
-        User::get_user_by_username_or_select(follower.as_deref(), "Select who is following", pool)
-            .await?;
+    let mut tx = pool.begin().await?;
+    let follower = User::get_user_by_username_or_select(
+        follower.as_deref(),
+        "Select who is following",
+        &mut *tx,
+    )
+    .await?;
     let followed_list: HashMap<String, User> = follower
-        .get_followed(pool)
+        .get_followed(&mut *tx)
         .await?
         .iter()
         .map(|person| (person.username.clone(), person.clone()))
@@ -97,8 +103,9 @@ async fn unfollow_user(follower: Option<String>, pool: &sqlx::PgPool) -> Result 
         follower.id,
         followed.id
     )
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+    tx.commit().await?;
     println!("User {follower} unfollowed {followed}");
     Ok(())
 }
