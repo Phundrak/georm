@@ -58,7 +58,7 @@ impl Profile {
         &mut self,
         display_name: Option<String>,
         bio: Option<String>,
-        executor: E
+        executor: E,
     ) -> Result<Self>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,

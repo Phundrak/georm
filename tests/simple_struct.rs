@@ -115,7 +115,7 @@ async fn should_create_if_does_not_exist(pool: sqlx::PgPool) -> sqlx::Result<()>
         name: "Miura Kentaro".into(),
         ..Default::default()
     };
-    author.create_or_update(&pool).await?;
+    author.upsert(&pool).await?;
     let all_authors = Author::find_all(&pool).await?;
     assert_eq!(1, all_authors.len());
     Ok(())
@@ -130,7 +130,7 @@ async fn should_update_if_exist(pool: sqlx::PgPool) -> sqlx::Result<()> {
         name: "Miura Kentaro".into(),
         ..Default::default()
     };
-    author.create_or_update(&pool).await?;
+    author.upsert(&pool).await?;
     let mut all_authors = Author::find_all(&pool).await?;
     all_authors.sort();
     assert_eq!(3, all_authors.len());

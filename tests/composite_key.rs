@@ -36,7 +36,7 @@ fn composite_key_get_id() {
 }
 
 #[sqlx::test(fixtures("composite_key"))]
-async fn composite_key_create_or_update(pool: sqlx::PgPool) -> sqlx::Result<()> {
+async fn composite_key_upsert(pool: sqlx::PgPool) -> sqlx::Result<()> {
     let new_user_role = UserRole {
         user_id: 5,
         role_id: 2,
@@ -44,7 +44,7 @@ async fn composite_key_create_or_update(pool: sqlx::PgPool) -> sqlx::Result<()> 
     };
 
     // This will test the upsert query generation bug
-    let result = new_user_role.create_or_update(&pool).await?;
+    let result = new_user_role.upsert(&pool).await?;
     assert_eq!(5, result.user_id);
     assert_eq!(2, result.role_id);
 

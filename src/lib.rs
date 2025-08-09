@@ -33,7 +33,7 @@
 //! ### Instance Methods (called on entity objects)
 //! - `entity.create(pool)` - Insert new record, returns created entity with database-generated values
 //! - `entity.update(pool)` - Update existing record, returns updated entity with fresh database state
-//! - `entity.create_or_update(pool)` - True PostgreSQL upsert using `ON CONFLICT`, returns final entity
+//! - `entity.upsert(pool)` - True PostgreSQL upsert using `ON CONFLICT`, returns final entity
 //! - `entity.delete(pool)` - Delete this record, returns affected row count
 //! - `entity.get_id()` - Get reference to the entity's ID (`&Id` for simple keys, owned for composite)
 //!
@@ -55,7 +55,7 @@
 //! Georm leverages PostgreSQL-specific features for performance and reliability:
 //!
 //! - **RETURNING clause**: All `INSERT` and `UPDATE` operations use `RETURNING *` to capture database-generated values (sequences, defaults, triggers)
-//! - **True upserts**: `create_or_update()` uses `INSERT ... ON CONFLICT ... DO UPDATE` for atomic upsert operations
+//! - **True upserts**: `upsert()` uses `INSERT ... ON CONFLICT ... DO UPDATE` for atomic upsert operations
 //! - **Prepared statements**: All queries use parameter binding for security and performance
 //! - **Compile-time verification**: SQLx macros verify all generated SQL against your database schema at compile time
 //!

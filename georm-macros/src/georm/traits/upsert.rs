@@ -44,7 +44,7 @@ pub fn generate_upsert_query(
     let field_idents: Vec<syn::Ident> = fields.iter().map(|f| f.ident.clone()).collect();
 
     quote! {
-        async fn create_or_update<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Self>
+        async fn upsert<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Self>
         where
             E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
         {

@@ -52,7 +52,7 @@ async fn upsert_handles_generated_fields(pool: sqlx::PgPool) -> sqlx::Result<()>
     let mut modified_product = product.clone();
     modified_product.price = BigDecimal::from(1200);
 
-    let upserted = modified_product.create_or_update(&pool).await?;
+    let upserted = modified_product.upsert(&pool).await?;
 
     // price is updated
     assert_eq!(upserted.price, BigDecimal::from(1200));

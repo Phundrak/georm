@@ -26,7 +26,7 @@ use sqlx::{Executor, Postgres};
 /// ### Instance Methods (Mutation Operations)
 /// - [`create`] - Insert a new entity into the database
 /// - [`update`] - Update an existing entity in the database
-/// - [`create_or_update`] - Upsert (insert or update) an entity
+/// - [`upsert`] - Upsert (insert or update) an entity
 /// - [`delete`] - Delete this entity from the database
 /// - [`get_id`] - Get the primary key of this entity
 ///
@@ -92,7 +92,7 @@ use sqlx::{Executor, Postgres};
 /// [`find`]: Georm::find
 /// [`create`]: Georm::create
 /// [`update`]: Georm::update
-/// [`create_or_update`]: Georm::create_or_update
+/// [`upsert`]: Georm::upsert
 /// [`delete`]: Georm::delete
 /// [`delete_by_id`]: Georm::delete_by_id
 /// [`get_id`]: Georm::get_id
@@ -264,7 +264,7 @@ pub trait Georm<Id> {
     /// # Examples
     /// ```ignore
     /// let user = User { id: 1, username: "alice".into(), email: "alice@example.com".into() };
-    /// let final_user = user.create_or_update(&pool).await?;
+    /// let final_user = user.upsert(&pool).await?;
     /// // Will insert if ID 1 doesn't exist, update if it does
     /// ```
     ///
@@ -273,13 +273,22 @@ pub trait Georm<Id> {
     /// - Non-primary-key constraint violations
     /// - Database connection issues
     /// - Permission problems
+    fn upsert<'e, E>(&self, executor: E) -> impl ::std::future::Future<Output = sqlx::Result<Self>>
+    where
+        Self: Sized,
+        E: Executor<'e, Database = Postgres>;
+
+    #[deprecated(since = "0.3.0", note = "Please use `upsert` instead")]
     fn create_or_update<'e, E>(
         &self,
         executor: E,
     ) -> impl ::std::future::Future<Output = sqlx::Result<Self>>
     where
         Self: Sized,
-        E: Executor<'e, Database = Postgres>;
+        E: Executor<'e, Database = Postgres>,
+    {
+        self.upsert(executor)
+    }
 
     /// Delete this entity from the database.
     ///

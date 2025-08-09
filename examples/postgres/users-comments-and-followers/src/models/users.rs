@@ -69,7 +69,7 @@ impl User {
     pub async fn get_user_by_id_or_select<'e, E>(
         id: Option<i32>,
         prompt: &str,
-        executor: E
+        executor: E,
     ) -> Result<Self>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
@@ -128,8 +128,7 @@ impl User {
         Ok(user)
     }
 
-    pub async fn update_profile(id: Option<i32>, pool: &sqlx::PgPool) -> Result<(User, Profile)>
-    {
+    pub async fn update_profile(id: Option<i32>, pool: &sqlx::PgPool) -> Result<(User, Profile)> {
         let prompt = "Select the user whose profile you want to update";
         let user = Self::get_user_by_id_or_select(id, prompt, pool).await?;
         let profile = match user.get_profile(pool).await? {

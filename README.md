@@ -557,7 +557,7 @@ Post::find(executor, &post_id).await?;
 // Mutation operations
 post.create(executor).await?;
 post.update(executor).await?;
-post.create_or_update(executor).await?;
+post.upsert(executor).await?;
 post.delete(executor).await?;
 Post::delete_by_id(executor, &post_id).await?;
 
