@@ -4,10 +4,22 @@ use crate::georm::ir::GeormField;
 use quote::quote;
 
 mod postgres;
-pub use postgres::PostgresDialect;
+mod sqlite;
 
+#[cfg(feature = "postgres")]
+pub use postgres::PostgresDialect;
+#[cfg(feature = "sqlite")]
+pub use sqlite::SqliteDialect;
+
+#[cfg(feature = "postgres")]
 pub type ActiveDialect = PostgresDialect;
+#[cfg(feature = "sqlite")]
+pub type ActiveDialect = SqliteDialect;
+
+#[cfg(feature = "postgres")]
 pub const DIALECT: ActiveDialect = PostgresDialect;
+#[cfg(feature = "sqlite")]
+pub const DIALECT: ActiveDialect = SqliteDialect;
 
 /// How a relation-lookup query should fetch its result.
 pub enum FetchKind {
@@ -28,6 +40,13 @@ pub trait SqlDialect {
     fn placeholder(&self, index: usize) -> String;
     fn database_type(&self) -> proc_macro2::TokenStream;
     fn row_type(&self) -> proc_macro2::TokenStream;
+
+    /// Like [`SqlDialect::placeholder`], but for placeholder lists whose
+    /// length is only known at runtime (the defaultable-struct insert, which
+    /// varies its column count based on which `Option` fields are `Some`).
+    /// `index_var` names the runtime `usize` loop variable holding the 1-based
+    /// position of the placeholder being built.
+    fn runtime_placeholder(&self, index_var: &syn::Ident) -> proc_macro2::TokenStream;
 
     fn generate_from_row(
         &self,
@@ -325,7 +344,11 @@ pub trait SqlDialect {
             where
                 E: ::sqlx::Executor<'e, Database = #database>
             {
-                ::sqlx::query_as!(#entity, #query, #arg).#fetch_method(executor).await
+                // Bound to a place rather than passed inline: sqlx's SQLite
+                // query macros need the bind argument to outlive the
+                // temporary produced by expressions like `self.get_id()`.
+                let arg = #arg;
+                ::sqlx::query_as!(#entity, #query, arg).#fetch_method(executor).await
             }
         }
     }

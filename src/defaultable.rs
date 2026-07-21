@@ -1,4 +1,5 @@
-use sqlx::{Executor, Postgres};
+use crate::ActiveDatabase;
+use sqlx::Executor;
 
 /// Trait for creating entities with database defaults and auto-generated values.
 ///
@@ -277,5 +278,5 @@ pub trait Defaultable<Id, Entity> {
     ) -> impl std::future::Future<Output = sqlx::Result<Entity>> + Send
     where
         Self: Sized,
-        E: Executor<'e, Database = Postgres>;
+        E: Executor<'e, Database = ActiveDatabase>;
 }

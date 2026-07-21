@@ -1,3 +1,5 @@
+#![cfg(feature = "postgres")]
+
 use georm::Georm;
 use sqlx::{Postgres, types::BigDecimal};
 

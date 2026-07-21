@@ -10,6 +10,7 @@
 //! `Defaultable` trait.
 
 use crate::georm::ir::GeneratedType;
+use crate::georm::sql::{self, SqlDialect};
 
 use super::ir::{GeormField, GeormStructAttributes};
 use quote::quote;
@@ -92,11 +93,15 @@ fn generate_defaultable_trait_impl(
         });
     }
 
+    let database = sql::DIALECT.database_type();
+    let index_var = syn::Ident::new("i", proc_macro2::Span::call_site());
+    let placeholder_expr = sql::DIALECT.runtime_placeholder(&index_var);
+
     quote! {
         impl ::georm::Defaultable<#id_type, #struct_name> for #defaultable_struct_name {
             async fn create<'e, E>(&self, mut executor: E) -> ::sqlx::Result<#struct_name>
             where
-                E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
+                E: ::sqlx::Executor<'e, Database = #database>
             {
                 let mut dynamic_fields = Vec::new();
 
@@ -106,7 +111,7 @@ fn generate_defaultable_trait_impl(
                 all_fields.extend(dynamic_fields);
 
                 let placeholders: Vec<String> = (1..=all_fields.len())
-                    .map(|i| format!("${}", i))
+                    .map(|#index_var| #placeholder_expr)
                     .collect();
 
                 let query = format!(

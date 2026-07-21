@@ -2,8 +2,6 @@ name: CI
 on:
   pull_request:
   push:
-env:
-  DATABASE_URL: postgresql://georm:georm@postgres:5432/georm
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,6 +15,10 @@ jobs:
       options: --security-opt seccomp=unconfined
     permissions:
       pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [postgres, sqlite]
     services:
       postgres:
         image: postgres:16-alpine
@@ -29,19 +31,32 @@ jobs:
           --health-interval 10s
           --health-timeout 10s
           --health-retries 5
+    env:
+      DATABASE_URL: ${{ matrix.backend == 'postgres' && 'postgresql://georm:georm@postgres:5432/georm' || 'sqlite:///tmp/georm-ci.db' }}
     steps:
       - uses: actions/checkout@v4
       - name: Install Nix
         uses: cachix/install-nix-action@v31
       - name: Install devenv
         run: nix profile install nixpkgs#devenv
-      - name: Migrate database
-        run: devenv shell just migrate
+      - name: Create SQLite database file
+        if: matrix.backend == 'sqlite'
+        run: touch /tmp/georm-ci.db
+      - name: Migrate database (postgres)
+        if: matrix.backend == 'postgres'
+        run: devenv shell just migrate-postgres
+      - name: Migrate database (sqlite)
+        if: matrix.backend == 'sqlite'
+        run: devenv shell just migrate-sqlite
+      # Formatting and dependency audit don't vary by backend, so only run
+      # them once rather than duplicating across both matrix legs.
       - name: Formatting check
+        if: matrix.backend == 'postgres'
         run: devenv shell just format-check
-      - name: Lint
-        run: devenv shell just lint
       - name: Audit
+        if: matrix.backend == 'postgres'
         run: devenv shell just audit
+      - name: Lint
+        run: devenv shell just ${{ matrix.backend == 'postgres' && 'lint' || 'lint-sqlite' }}
       - name: Tests
-        run: devenv shell just test
+        run: devenv shell just ${{ matrix.backend == 'postgres' && 'test-postgres' || 'test-sqlite' }}

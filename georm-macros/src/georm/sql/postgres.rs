@@ -15,4 +15,8 @@ impl SqlDialect for PostgresDialect {
     fn row_type(&self) -> proc_macro2::TokenStream {
         quote! { ::sqlx::postgres::PgRow }
     }
+
+    fn runtime_placeholder(&self, index_var: &syn::Ident) -> proc_macro2::TokenStream {
+        quote! { format!("${}", #index_var) }
+    }
 }

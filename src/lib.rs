@@ -1,6 +1,7 @@
 //! # Georm
 //!
-//! A simple, type-safe PostgreSQL ORM built on SQLx with zero runtime overhead.
+//! A simple, type-safe ORM for PostgreSQL and SQLite built on SQLx with zero
+//! runtime overhead.
 //!
 //! ## Quick Start
 //!
@@ -618,8 +619,16 @@
 //!
 //! ### Database Support
 //!
-//! Georm is currently limited to PostgreSQL. Other databases may be supported in
-//! the future, such as SQLite or MySQL, but that is not the case yet.
+//! Georm supports PostgreSQL and SQLite, selected via the mutually exclusive
+//! `postgres` (default) and `sqlite` Cargo features. Basic CRUD (`find_all`,
+//! `find`, `create`, `update`, `upsert`, `delete`) and `Defaultable` are
+//! supported on both backends; relationship queries (`one_to_one`,
+//! `one_to_many`, `many_to_many`, field-level `relation`) are implemented for
+//! both dialects at the SQL-generation level, but composite-key entities with
+//! `chrono::DateTime` columns are not yet covered by the SQLite test suite
+//! (SQLite's compile-time query macros need explicit column type overrides
+//! for non-primitive types, which is follow-up work). `sqlx::types::BigDecimal`
+//! fields require the `postgres` feature — SQLite has no equivalent type.
 //!
 //! ### Identifiers
 //!
@@ -635,7 +644,8 @@
 //! - **No advanced queries**: No complex WHERE clauses or joins beyond relationships
 //! - **No eager loading**: Each relationship call is a separate database query
 //! - **No field-based queries**: No `find_by_{field_name}` methods generated automatically
-//! - **PostgreSQL only**: No support for other database systems
+//! - **SQLite + `chrono`**: composite-key entities with `chrono::DateTime` columns aren't yet
+//!   covered under the `sqlite` feature (see "Database Support" above)
 //!
 //! ## Generated Code
 //!
@@ -646,8 +656,15 @@
 //! - Relationship methods for accessing related entities
 //! - All CRUD operations with proper PostgreSQL optimizations
 
+#[cfg(all(feature = "postgres", feature = "sqlite"))]
+compile_error!("georm: \"postgres\" and \"sqlite\" are mutually exclusive; enable only one");
+#[cfg(not(any(feature = "postgres", feature = "sqlite")))]
+compile_error!("georm: enable exactly one of \"postgres\" or \"sqlite\"");
+
 pub use georm_macros::Georm;
 
+mod database;
+pub use database::ActiveDatabase;
 mod georm;
 pub use georm::Georm;
 mod defaultable;

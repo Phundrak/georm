@@ -18,7 +18,7 @@ categories = ["database"]
 [package]
 name = "georm"
 readme = "README.md"
-description = "Georm, a simple, opiniated SQLx ORM for PostgreSQL"
+description = "Georm, a simple, opiniated SQLx ORM for PostgreSQL and SQLite"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
@@ -26,13 +26,18 @@ license.workspace = true
 repository.workspace = true
 version.workspace = true
 
+[features]
+default = ["postgres"]
+postgres = ["georm-macros/postgres", "sqlx/postgres", "sqlx/bigdecimal"]
+sqlite = ["georm-macros/sqlite", "sqlx/sqlite"]
+
 [workspace.dependencies]
 georm-macros = { version = "=0.2.1", path = "georm-macros" }
 
 [workspace.dependencies.sqlx]
 version = "0.8.6"
 default-features = false
-features = ["postgres", "runtime-tokio", "macros", "migrate", "bigdecimal"]
+features = ["runtime-tokio", "macros", "migrate"]
 
 [dependencies]
 sqlx = { workspace = true }
@@ -43,9 +48,28 @@ chrono = { version = "0.4", features = ["serde"] }
 rand = "0.9"
 
 [dev-dependencies.sqlx]
+# Unlike the crate's own [features] above, dev-dependencies are always built
+# for `cargo test` regardless of --no-default-features/--features passed for
+# the georm package itself. Tests bind directly to sqlx::PgPool/SqlitePool,
+# so both drivers must be enabled here unconditionally.
 version = "0.8.6"
 default-features = false
-features = ["postgres", "runtime-tokio", "macros", "migrate", "chrono"]
+features = ["postgres", "sqlite", "runtime-tokio", "macros", "migrate", "chrono", "bigdecimal"]
+
+# Cargo's test auto-discovery only scans tests/*.rs (not subdirectories), so
+# the tests/sqlite/*.rs files (kept in their own directory to avoid colliding
+# with the postgres tests/models.rs module) need explicit [[test]] entries.
+[[test]]
+name = "sqlite_simple_struct"
+path = "tests/sqlite/simple_struct.rs"
+
+[[test]]
+name = "sqlite_defaultable_struct"
+path = "tests/sqlite/defaultable_struct.rs"
+
+# sqlite_composite_key intentionally deferred: UserRole's chrono::DateTime<Utc>
+# column needs per-field query_as! type overrides under SQLite (see the note
+# in tests/sqlite/models.rs) that don't exist yet.
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

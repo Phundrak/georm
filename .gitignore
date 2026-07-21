@@ -4,6 +4,12 @@
 /.sqls
 /examples/target
 
+# Local SQLite databases used for manual testing
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 # Devenv
 .devenv*
 devenv.local.nix

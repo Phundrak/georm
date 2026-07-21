@@ -1,3 +1,5 @@
+#![cfg(feature = "postgres")]
+
 use georm::Georm;
 
 // Test struct with defaultable fields using existing table structure

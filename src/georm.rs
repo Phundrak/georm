@@ -1,4 +1,5 @@
-use sqlx::{Executor, Postgres};
+use crate::ActiveDatabase;
+use sqlx::Executor;
 
 /// Core database operations trait for Georm entities.
 ///
@@ -125,7 +126,7 @@ pub trait Georm<Id> {
     ) -> impl ::std::future::Future<Output = ::sqlx::Result<Vec<Self>>> + Send
     where
         Self: Sized,
-        E: Executor<'e, Database = Postgres>;
+        E: Executor<'e, Database = ActiveDatabase>;
 
     /// Find a single entity by its primary key.
     ///
@@ -161,7 +162,7 @@ pub trait Georm<Id> {
     ) -> impl std::future::Future<Output = sqlx::Result<Option<Self>>> + Send
     where
         Self: Sized,
-        E: Executor<'e, Database = Postgres>;
+        E: Executor<'e, Database = ActiveDatabase>;
 
     /// Insert this entity as a new record in the database.
     ///
@@ -201,7 +202,7 @@ pub trait Georm<Id> {
     ) -> impl std::future::Future<Output = sqlx::Result<Self>> + Send
     where
         Self: Sized,
-        E: Executor<'e, Database = Postgres>;
+        E: Executor<'e, Database = ActiveDatabase>;
 
     /// Update an existing entity in the database.
     ///
@@ -240,7 +241,7 @@ pub trait Georm<Id> {
     ) -> impl std::future::Future<Output = sqlx::Result<Self>> + Send
     where
         Self: Sized,
-        E: Executor<'e, Database = Postgres>;
+        E: Executor<'e, Database = ActiveDatabase>;
 
     /// Insert or update this entity using PostgreSQL's upsert functionality.
     ///
@@ -276,7 +277,7 @@ pub trait Georm<Id> {
     fn upsert<'e, E>(&self, executor: E) -> impl ::std::future::Future<Output = sqlx::Result<Self>>
     where
         Self: Sized,
-        E: Executor<'e, Database = Postgres>;
+        E: Executor<'e, Database = ActiveDatabase>;
 
     #[deprecated(since = "0.3.0", note = "Please use `upsert` instead")]
     fn create_or_update<'e, E>(
@@ -285,7 +286,7 @@ pub trait Georm<Id> {
     ) -> impl ::std::future::Future<Output = sqlx::Result<Self>>
     where
         Self: Sized,
-        E: Executor<'e, Database = Postgres>,
+        E: Executor<'e, Database = ActiveDatabase>,
     {
         self.upsert(executor)
     }
@@ -324,7 +325,7 @@ pub trait Georm<Id> {
         executor: E,
     ) -> impl std::future::Future<Output = sqlx::Result<u64>> + Send
     where
-        E: Executor<'e, Database = Postgres>;
+        E: Executor<'e, Database = ActiveDatabase>;
 
     /// Delete an entity by its primary key without needing an entity instance.
     ///
@@ -364,7 +365,7 @@ pub trait Georm<Id> {
         id: &Id,
     ) -> impl std::future::Future<Output = sqlx::Result<u64>> + Send
     where
-        E: Executor<'e, Database = Postgres>;
+        E: Executor<'e, Database = ActiveDatabase>;
 
     /// Get the primary key of this entity.
     ///

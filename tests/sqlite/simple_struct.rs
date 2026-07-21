@@ -1,4 +1,4 @@
-#![cfg(feature = "postgres")]
+#![cfg(feature = "sqlite")]
 
 use georm::Georm;
 use rand::seq::SliceRandom;
@@ -6,22 +6,22 @@ use rand::seq::SliceRandom;
 use models::Author;
 mod models;
 
-#[sqlx::test(fixtures("simple_struct"))]
-async fn find_all_query_works(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite", fixtures("simple_struct"))]
+async fn find_all_query_works(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let result = Author::find_all(&pool).await?;
     assert_eq!(3, result.len());
     Ok(())
 }
 
-#[sqlx::test]
-async fn find_all_returns_empty_vec_on_empty_table(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite")]
+async fn find_all_returns_empty_vec_on_empty_table(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let result = Author::find_all(&pool).await?;
     assert_eq!(0, result.len());
     Ok(())
 }
 
-#[sqlx::test(fixtures("simple_struct"))]
-async fn find_query_works(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite", fixtures("simple_struct"))]
+async fn find_query_works(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let id = 1;
     let res = Author::find(&pool, &id).await?;
     assert!(res.is_some());
@@ -31,15 +31,15 @@ async fn find_query_works(pool: sqlx::PgPool) -> sqlx::Result<()> {
     Ok(())
 }
 
-#[sqlx::test]
-async fn find_returns_none_if_not_found(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite")]
+async fn find_returns_none_if_not_found(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let res = Author::find(&pool, &420).await?;
     assert!(res.is_none());
     Ok(())
 }
 
-#[sqlx::test]
-async fn create_works(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite")]
+async fn create_works(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let author = Author {
         id: 1,
         name: "J.R.R. Tolkien".into(),
@@ -52,8 +52,8 @@ async fn create_works(pool: sqlx::PgPool) -> sqlx::Result<()> {
     Ok(())
 }
 
-#[sqlx::test(fixtures("simple_struct"))]
-async fn create_fails_if_already_exists(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite", fixtures("simple_struct"))]
+async fn create_fails_if_already_exists(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let author = Author {
         id: 2,
         name: "Miura Kentaro".into(),
@@ -61,16 +61,11 @@ async fn create_fails_if_already_exists(pool: sqlx::PgPool) -> sqlx::Result<()> 
     };
     let result = author.create(&pool).await;
     assert!(result.is_err());
-    let error = result.err().unwrap();
-    assert_eq!(
-        "error returned from database: duplicate key value violates unique constraint \"authors_pkey\"",
-        error.to_string()
-    );
     Ok(())
 }
 
-#[sqlx::test(fixtures("simple_struct"))]
-async fn update_works(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite", fixtures("simple_struct"))]
+async fn update_works(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let expected_initial = Author {
         name: "J.R.R. Tolkien".into(),
         id: 1,
@@ -91,8 +86,8 @@ async fn update_works(pool: sqlx::PgPool) -> sqlx::Result<()> {
     Ok(())
 }
 
-#[sqlx::test]
-async fn update_fails_if_not_already_exists(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite")]
+async fn update_fails_if_not_already_exists(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let author = Author {
         id: 2,
         name: "Miura Kentaro".into(),
@@ -100,16 +95,11 @@ async fn update_fails_if_not_already_exists(pool: sqlx::PgPool) -> sqlx::Result<
     };
     let result = author.update(&pool).await;
     assert!(result.is_err());
-    let error = result.err().unwrap();
-    assert_eq!(
-        "no rows returned by a query that expected to return at least one row",
-        error.to_string()
-    );
     Ok(())
 }
 
-#[sqlx::test]
-async fn should_create_if_does_not_exist(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite")]
+async fn should_create_if_does_not_exist(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let all_authors = Author::find_all(&pool).await?;
     assert_eq!(0, all_authors.len());
     let author = Author {
@@ -123,8 +113,8 @@ async fn should_create_if_does_not_exist(pool: sqlx::PgPool) -> sqlx::Result<()>
     Ok(())
 }
 
-#[sqlx::test(fixtures("simple_struct"))]
-async fn should_update_if_exist(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite", fixtures("simple_struct"))]
+async fn should_update_if_exist(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let all_authors = Author::find_all(&pool).await?;
     assert_eq!(3, all_authors.len());
     let author = Author {
@@ -140,8 +130,8 @@ async fn should_update_if_exist(pool: sqlx::PgPool) -> sqlx::Result<()> {
     Ok(())
 }
 
-#[sqlx::test(fixtures("simple_struct"))]
-async fn delete_by_id_should_delete_only_one_entry(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite", fixtures("simple_struct"))]
+async fn delete_by_id_should_delete_only_one_entry(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let id = 2;
     let all_authors = Author::find_all(&pool).await?;
     assert_eq!(3, all_authors.len());
@@ -154,8 +144,8 @@ async fn delete_by_id_should_delete_only_one_entry(pool: sqlx::PgPool) -> sqlx::
     Ok(())
 }
 
-#[sqlx::test(fixtures("simple_struct"))]
-async fn delete_should_delete_current_entity_from_db(pool: sqlx::PgPool) -> sqlx::Result<()> {
+#[sqlx::test(migrations = "./migrations/sqlite", fixtures("simple_struct"))]
+async fn delete_should_delete_current_entity_from_db(pool: sqlx::SqlitePool) -> sqlx::Result<()> {
     let mut all_authors = Author::find_all(&pool).await?;
     assert_eq!(3, all_authors.len());
     all_authors.shuffle(&mut rand::rng());

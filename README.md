@@ -7,7 +7,7 @@
 <h1 align="center">Georm</h1>
 <div align="center">
  <strong>
-   A simple, type-safe SQLx ORM for PostgreSQL
+   A simple, type-safe SQLx ORM for PostgreSQL and SQLite
  </strong>
 </div>
 <br/>
@@ -606,7 +606,7 @@ Georm is designed for zero runtime overhead:
 - **Compile-time queries**: All SQL is verified at compile time
 - **No reflection**: Direct field access, no runtime introspection
 - **Minimal allocations**: Efficient use of owned vs borrowed data
-- **SQLx integration**: Leverages SQLx's optimized PostgreSQL driver
+- **SQLx integration**: Leverages SQLx's optimized PostgreSQL or SQLite driver, selected via the `postgres`/`sqlite` Cargo features
 
 ## Examples
 
@@ -651,7 +651,7 @@ cargo run help # For a list of all available actions
 
 ### High Priority
 - **Simplified Relationship Syntax**: Remove redundant table/remote_id specifications by inferring them from target entity metadata
-- **Multi-Database Support**: MySQL and SQLite support with feature flags
+- **Multi-Database Support**: SQLite support landed behind the `sqlite` feature flag (composite keys with `chrono` columns still pending); MySQL remains unstarted
 
 ### Medium Priority
 - **Composite Key Relationships**: Add relationship support (one-to-one, one-to-many, many-to-many) for entities with composite primary keys
