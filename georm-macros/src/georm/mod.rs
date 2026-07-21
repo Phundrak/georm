@@ -5,6 +5,7 @@ mod defaultable_struct;
 mod ir;
 pub(crate) use ir::GeormField;
 mod relationships;
+mod sql;
 mod traits;
 pub(crate) use composite_keys::IdType;
 
@@ -67,18 +68,6 @@ fn generate_from_row_impl(
     ast: &syn::DeriveInput,
     fields: &[GeormField],
 ) -> proc_macro2::TokenStream {
-    let struct_name = &ast.ident;
-    let field_idents: Vec<&syn::Ident> = fields.iter().map(|f| &f.ident).collect();
-    let field_names: Vec<String> = fields.iter().map(|f| f.ident.to_string()).collect();
-
-    quote! {
-        impl<'r> ::sqlx::FromRow<'r, ::sqlx::postgres::PgRow> for #struct_name {
-            fn from_row(row: &'r ::sqlx::postgres::PgRow) -> ::sqlx::Result<Self> {
-                use ::sqlx::Row;
-                Ok(Self {
-                    #(#field_idents: row.try_get(#field_names)?),*
-                })
-            }
-        }
-    }
+    use sql::SqlDialect;
+    sql::DIALECT.generate_from_row(&ast.ident, fields)
 }

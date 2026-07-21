@@ -1,3 +1,4 @@
+use crate::georm::sql::SqlDialect;
 use quote::quote;
 
 pub mod simple_relationship;
@@ -156,28 +157,24 @@ impl From<&GeormField> for proc_macro2::TokenStream {
             proc_macro2::Span::call_site(),
         );
         let entity = &relation.entity;
-        let return_type = if relation.nullable {
-            quote! { Option<#entity> }
-        } else {
-            quote! { #entity }
-        };
         let query = format!(
-            "SELECT * FROM {} WHERE {} = $1",
-            relation.table, relation.remote_id
+            "SELECT * FROM {} WHERE {} = {}",
+            relation.table,
+            relation.remote_id,
+            crate::georm::sql::DIALECT.placeholder(1)
         );
         let local_ident = &value.field.ident;
         let fetch = if relation.nullable {
-            quote! { fetch_optional }
+            crate::georm::sql::FetchKind::Optional
         } else {
-            quote! { fetch_one }
+            crate::georm::sql::FetchKind::One
         };
-        quote! {
-            pub async fn #function<'e, E>(&self, mut executor: E) -> ::sqlx::Result<#return_type>
-            where
-                E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
-            {
-                ::sqlx::query_as!(#entity, #query, self.#local_ident).#fetch(executor).await
-            }
-        }
+        crate::georm::sql::DIALECT.generate_relation_lookup(
+            &function,
+            entity,
+            &query,
+            &quote! { self.#local_ident },
+            &fetch,
+        )
     }
 }

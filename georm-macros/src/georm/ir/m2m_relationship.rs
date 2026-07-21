@@ -1,3 +1,4 @@
+use crate::georm::sql::{self, FetchKind, SqlDialect};
 use quote::quote;
 
 #[derive(deluxe::ParseMetaItem, Clone)]
@@ -60,7 +61,7 @@ impl From<&M2MRelationshipComplete> for proc_macro2::TokenStream {
 FROM {} local
 JOIN {} link ON link.{} = local.{}
 JOIN {} remote ON link.{} = remote.{}
-WHERE local.{} = $1",
+WHERE local.{} = {}",
             value.local.table,
             value.link.table,
             value.link.from,
@@ -68,15 +69,15 @@ WHERE local.{} = $1",
             value.remote.table,
             value.link.to,
             value.remote.id,
-            value.local.id
+            value.local.id,
+            sql::DIALECT.placeholder(1)
         );
-        quote! {
-            pub async fn #function<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Vec<#entity>>
-            where
-                E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
-            {
-                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_all(executor).await
-            }
-        }
+        sql::DIALECT.generate_relation_lookup(
+            &function,
+            entity,
+            &query,
+            &quote! { self.get_id() },
+            &FetchKind::Many,
+        )
     }
 }

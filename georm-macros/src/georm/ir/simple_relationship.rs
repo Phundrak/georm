@@ -1,3 +1,4 @@
+use crate::georm::sql::{self, FetchKind, SqlDialect};
 use quote::quote;
 
 pub trait SimpleRelationshipType {}
@@ -28,7 +29,12 @@ where
     T: SimpleRelationshipType + deluxe::ParseMetaItem + Default,
 {
     pub fn make_query(&self) -> String {
-        format!("SELECT * FROM {} WHERE {} = $1", self.table, self.remote_id)
+        format!(
+            "SELECT * FROM {} WHERE {} = {}",
+            self.table,
+            self.remote_id,
+            sql::DIALECT.placeholder(1)
+        )
     }
 
     pub fn make_function_name(&self) -> syn::Ident {
@@ -44,14 +50,13 @@ impl From<&SimpleRelationship<OneToOne>> for proc_macro2::TokenStream {
         let query = value.make_query();
         let entity = &value.entity;
         let function = value.make_function_name();
-        quote! {
-            pub async fn #function<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Option<#entity>>
-            where
-                E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
-            {
-                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_optional(executor).await
-            }
-        }
+        sql::DIALECT.generate_relation_lookup(
+            &function,
+            entity,
+            &query,
+            &quote! { self.get_id() },
+            &FetchKind::Optional,
+        )
     }
 }
 
@@ -60,13 +65,12 @@ impl From<&SimpleRelationship<OneToMany>> for proc_macro2::TokenStream {
         let query = value.make_query();
         let entity = &value.entity;
         let function = value.make_function_name();
-        quote! {
-            pub async fn #function<'e, E>(&self, mut executor: E) -> ::sqlx::Result<Vec<#entity>>
-            where
-                E: ::sqlx::Executor<'e, Database = ::sqlx::Postgres>
-            {
-                ::sqlx::query_as!(#entity, #query, self.get_id()).fetch_all(executor).await
-            }
-        }
+        sql::DIALECT.generate_relation_lookup(
+            &function,
+            entity,
+            &query,
+            &quote! { self.get_id() },
+            &FetchKind::Many,
+        )
     }
 }
